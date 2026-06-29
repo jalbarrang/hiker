@@ -1,0 +1,85 @@
+#!/bin/sh
+# hiker installer — channel-aware, mirrors opencode's install UX.
+#
+#   curl -fsSL <raw-url>/install | sh                         # stable (default)
+#   curl -fsSL <raw-url>/install | sh -s -- --channel beta    # latest beta
+#   curl -fsSL <raw-url>/install | sh -s -- --version 1.2.3   # exact version
+#
+# Env overrides:
+#   HIKER_REPO         GitHub "owner/repo" to pull releases from
+#   HIKER_INSTALL_DIR  where to drop the binary (default: $HOME/.hiker/bin)
+set -eu
+
+# ── EDIT ME: the GitHub repo that publishes hiker releases ───────────────────
+REPO="${HIKER_REPO:-OWNER/hiker}"
+INSTALL_DIR="${HIKER_INSTALL_DIR:-$HOME/.hiker/bin}"
+CHANNEL="stable"
+VERSION=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --channel) CHANNEL="$2"; shift 2 ;;
+    --version) VERSION="${2#v}"; shift 2 ;;
+    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+
+err() { printf '\033[31merror:\033[0m %s\n' "$1" >&2; exit 1; }
+info() { printf '\033[2m%s\033[0m\n' "$1"; }
+
+command -v curl >/dev/null 2>&1 || err "curl is required"
+
+# ── Detect target triple ─────────────────────────────────────────────────────
+os="$(uname -s)"; arch="$(uname -m)"
+case "$arch" in x86_64|amd64) arch=x86_64 ;; arm64|aarch64) arch=aarch64 ;; *) err "unsupported arch: $arch" ;; esac
+case "$os" in
+  Linux)  [ "$arch" = x86_64 ] && target="x86_64-unknown-linux-musl" || target="aarch64-unknown-linux-gnu"; ext="tar.gz" ;;
+  Darwin) target="$arch-apple-darwin"; ext="tar.gz" ;;
+  *) err "unsupported OS: $os (use the .zip asset on Windows)" ;;
+esac
+
+# ── Resolve the release tag for the chosen channel ───────────────────────────
+api="https://api.github.com/repos/$REPO"
+if [ -n "$VERSION" ]; then
+  tag="v$VERSION"
+elif [ "$CHANNEL" = "stable" ]; then
+  tag="$(curl -fsSL "$api/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1)"
+else
+  # First release flagged prerelease (tag_name precedes prerelease in GH JSON).
+  tag="$(curl -fsSL "$api/releases?per_page=30" \
+    | awk -F'"' '/"tag_name":/{t=$4} /"prerelease": *true/{print t; exit}')"
+fi
+[ -n "${tag:-}" ] || err "no release found for channel '$CHANNEL' in $REPO"
+version="${tag#v}"
+
+# ── Skip if already installed ────────────────────────────────────────────────
+if command -v hiker >/dev/null 2>&1; then
+  cur="$(hiker --version 2>/dev/null | awk '{print $2}')"
+  [ "$cur" = "$version" ] && { info "hiker $version already installed"; exit 0; }
+fi
+
+# ── Download + extract ───────────────────────────────────────────────────────
+asset="hiker-$target.$ext"
+url="https://github.com/$REPO/releases/download/$tag/$asset"
+tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+info "downloading $asset ($tag)"
+curl -fsSL "$url" -o "$tmp/$asset" || err "download failed: $url"
+
+# Verify checksum if published alongside the asset.
+if curl -fsSL "$url.sha256" -o "$tmp/$asset.sha256" 2>/dev/null; then
+  ( cd "$tmp" && (shasum -a 256 -c "$asset.sha256" >/dev/null 2>&1 \
+    || sha256sum -c "$asset.sha256" >/dev/null 2>&1) ) || err "checksum mismatch"
+  info "checksum ok"
+fi
+
+tar -xzf "$tmp/$asset" -C "$tmp"
+mkdir -p "$INSTALL_DIR"
+install -m 0755 "$tmp/hiker" "$INSTALL_DIR/hiker"
+info "installed hiker $version -> $INSTALL_DIR/hiker"
+
+# ── PATH hint ────────────────────────────────────────────────────────────────
+case ":$PATH:" in
+  *":$INSTALL_DIR:"*) ;;
+  *) printf '\nAdd hiker to your PATH:\n  export PATH="%s:$PATH"\n' "$INSTALL_DIR" ;;
+esac

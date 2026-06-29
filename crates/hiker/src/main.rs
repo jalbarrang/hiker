@@ -21,6 +21,10 @@ fn main() -> ExitCode {
     match args.first().map(String::as_str) {
         Some("check") => cmd_check(&args[1..]),
         Some("gen") => cmd_gen(&args[1..]),
+        Some("--version" | "-V" | "version") => {
+            println!("hiker {}", env!("CARGO_PKG_VERSION"));
+            ExitCode::SUCCESS
+        }
         _ => {
             eprintln!("usage:");
             eprintln!("  hiker check <file.tent>");

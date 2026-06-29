@@ -1,0 +1,122 @@
+name: release
+run-name: "release ${{ inputs.bump || github.ref_name }}"
+
+# Channel = branch. Push to `stable` for a real semver release; push to `beta`
+# for a prerelease. Or run manually and pick a bump.
+on:
+  push:
+    branches: [stable, beta]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump (stable only)"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      version:
+        description: "Override version (optional, e.g. 1.2.3)"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency: release-${{ github.ref }}
+
+jobs:
+  # ── Resolve channel + version from the branch / inputs ──────────────────────
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      channel: ${{ steps.v.outputs.channel }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need all tags to compute the next version
+      - id: v
+        run: bash scripts/release-version.sh
+        env:
+          HIKER_BUMP: ${{ inputs.bump }}
+          HIKER_VERSION: ${{ inputs.version }}
+
+  # ── Cross-compile the `hiker` binary for every target ───────────────────────
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-latest,  target: aarch64-unknown-linux-gnu }
+          - { os: ubuntu-latest,  target: x86_64-unknown-linux-musl }
+          - { os: macos-13,       target: x86_64-apple-darwin }
+          - { os: macos-14,       target: aarch64-apple-darwin }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Stamp the resolved version into the crate so `hiker --version` reports it.
+      - name: Stamp version
+        shell: bash
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          perl -0pi -e "s/^version = \"[^\"]+\"/version = \"$v\"/m" crates/hiker/Cargo.toml
+          grep '^version' crates/hiker/Cargo.toml
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # Linux cross targets (aarch64, musl) need a cross toolchain; this action
+      # configures cargo so a plain `cargo build --target` just works.
+      - uses: taiki-e/setup-cross-toolchain-action@v1
+        if: runner.os == 'Linux'
+        with:
+          target: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release -p hiker --target ${{ matrix.target }}
+
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          dist="hiker-${{ matrix.target }}"
+          tar -czf "$dist.tar.gz" -C "target/${{ matrix.target }}/release" hiker
+          shasum -a 256 "$dist.tar.gz" > "$dist.tar.gz.sha256"
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $dist = "hiker-${{ matrix.target }}"
+          Compress-Archive -Path "target/${{ matrix.target }}/release/hiker.exe" -DestinationPath "$dist.zip" -Force
+          (Get-FileHash "$dist.zip" -Algorithm SHA256).Hash.ToLower() + "  $dist.zip" | Out-File "$dist.zip.sha256" -Encoding ascii
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hiker-${{ matrix.target }}
+          path: |
+            hiker-${{ matrix.target }}.tar.gz*
+            hiker-${{ matrix.target }}.zip*
+
+  # ── Publish the GitHub Release (prerelease=true for beta) ────────────────────
+  release:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: v${{ needs.version.outputs.version }}
+          prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
+          target_commitish: ${{ github.sha }}
+          files: dist/*
+          fail_on_unmatched_files: true
