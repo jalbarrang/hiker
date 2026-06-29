@@ -5,7 +5,7 @@ so a violation fails loudly. Output is a **gitignored artifact** under
 `.rascador-cache/`; the `.tent` stays the source of truth.
 
 ```sh
-rascador gen .rascador/<spec>.tent --target rust|ts|python --module <import>
+rascador gen .rascador/tents/<slug>/<slug>.tent --target rust|ts|python --module <import>
 ```
 
 - `--module` is the system-under-test the tests call into: a Rust crate name, a
@@ -48,8 +48,8 @@ does it as a pre-test step). A typical `package.json`:
 ```json
 {
   "scripts": {
-    "intent": "rascador check .rascador/<spec>.tent",
-    "pretest": "rascador gen .rascador/<spec>.tent --target ts --module <import>"
+    "intent": "for f in .rascador/tents/*/*.tent; do rascador check \"$f\" || exit 1; done",
+    "pretest": "rascador gen .rascador/tents/<slug>/<slug>.tent --target ts --module <import>"
   }
 }
 ```

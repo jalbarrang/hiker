@@ -16,9 +16,10 @@ is enforced** (generated tests fail when code contradicts a law).
 
 Do these before proceeding:
 
-1. **Locate intent.** Look for a `.rascador/` directory and `*.tent` files. If
-   present, run `rascador check .rascador/<file>.tent` on each to learn the
-   current intent and confirm it still compiles. If `rascador` isn't on PATH:
+1. **Locate intent.** Each intent is a folder `.rascador/tents/<slug>/` holding
+   `<slug>.tent` (the spec) and `CONTEXT.md` (what it means + code anchors).
+   Read any `CONTEXT.md`, then `rascador check` each `<slug>.tent` to confirm the
+   intent still compiles. If `rascador` isn't on PATH:
    `cargo install --path <rascador-repo>/crates/rascador`.
 2. **If invoked with a sub-command** (`create`, `gen`), you MUST read
    `reference/<command>.md` next — it defines the flow. Don't improvise it.
@@ -30,7 +31,7 @@ Do these before proceeding:
   `.tent` and wire a check script. → `reference/create.md`
 - **`gen`** — emit property tests from a spec and wire them into the project's
   test runner (rust/ts/python). → `reference/gen.md`
-- **`check`** — `rascador check .rascador/<spec>.tent`. Prints
+- **`check`** — `rascador check .rascador/tents/<slug>/<slug>.tent`. Prints
   `OK: N sorts, N relations, N laws` (exit 0) or line-numbered errors. Run it
   after every `.tent` edit. (inline; no reference needed)
 
