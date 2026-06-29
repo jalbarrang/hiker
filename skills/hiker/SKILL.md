@@ -1,6 +1,15 @@
 ---
 name: hiker
-description: Capture, compile, and enforce architectural intent with hiker, a tiny DSL whose `.tent` specs declare sorts, relations, and laws and generate Rust/TypeScript/Python property tests. Use when a repo has a `.hiker/` directory or `.tent` files, when setting up intent for a new initiative or plan, when stating or checking an architectural invariant (a mapping, a distinction two parts must agree on, a deterministic rule), or when an agent might quietly collapse a domain distinction to make a test pass. Sub-commands: `create` (set up intent for an initiative), `gen` (wire property tests), `check` (compile the intent). Not for general feature or UI work.
+description: >-
+  Capture, compile, and enforce architectural intent with hiker, a tiny DSL
+  whose `.tent` specs declare sorts, relations, and laws and generate
+  Rust/TypeScript/Python property tests. Use when a repo has a `.hiker/`
+  directory or `.tent` files, when setting up intent for a new initiative or
+  plan, when stating or checking an architectural invariant (a mapping, a
+  distinction two parts must agree on, a deterministic rule), or when an agent
+  might quietly collapse a domain distinction to make a test pass. Sub-commands:
+  `create` (set up intent for an initiative), `gen` (wire property tests),
+  `check` (compile the intent). Not for general feature or UI work.
 version: 1.1.0
 ---
 
