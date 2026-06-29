@@ -2,15 +2,15 @@
 
 Goal: turn the laws into runnable property tests against the real implementation,
 so a violation fails loudly. Output is a **gitignored artifact** under
-`.rascador-cache/`; the `.tent` stays the source of truth.
+`.hiker-cache/`; the `.tent` stays the source of truth.
 
 ```sh
-rascador gen .rascador/tents/<slug>/<slug>.tent --target rust|ts|python --module <import>
+hiker gen .hiker/tents/<slug>/<slug>.tent --target rust|ts|python --module <import>
 ```
 
 - `--module` is the system-under-test the tests call into: a Rust crate name, a
   TS import path, or a Python module name.
-- No `-o` → writes `.rascador-cache/<target>/<default-name>`.
+- No `-o` → writes `.hiker-cache/<target>/<default-name>`.
 - `gen` refuses to emit from intent that doesn't `check`.
 
 ## Correspondence (by convention)
@@ -32,12 +32,12 @@ The cache dir starts with a dot, which every test runner skips during globbing.
 Add a committed shim once:
 
 - **Rust** — `tests/<name>.rs` containing
-  `include!("../.rascador-cache/rust/generated.rs");`. cargo discovers `tests/`.
+  `include!("../.hiker-cache/rust/generated.rs");`. cargo discovers `tests/`.
 - **TypeScript** — `tests/<name>.test.ts` containing
-  `import "../.rascador-cache/ts/generated.test.ts";`. Point vitest `include` at
+  `import "../.hiker-cache/ts/generated.test.ts";`. Point vitest `include` at
   `tests/**`.
 - **Python** — pass the explicit file path to pytest:
-  `pytest .rascador-cache/python/test_generated.py`. Add a `conftest.py` that puts
+  `pytest .hiker-cache/python/test_generated.py`. Add a `conftest.py` that puts
   the SUT dir on `sys.path`.
 
 ## Gen-first
@@ -48,8 +48,8 @@ does it as a pre-test step). A typical `package.json`:
 ```json
 {
   "scripts": {
-    "intent": "for f in .rascador/tents/*/*.tent; do rascador check \"$f\" || exit 1; done",
-    "pretest": "rascador gen .rascador/tents/<slug>/<slug>.tent --target ts --module <import>"
+    "intent": "for f in .hiker/tents/*/*.tent; do hiker check \"$f\" || exit 1; done",
+    "pretest": "hiker gen .hiker/tents/<slug>/<slug>.tent --target ts --module <import>"
   }
 }
 ```

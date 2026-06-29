@@ -1,7 +1,7 @@
-//! System-under-test for the rascador worked example.
+//! System-under-test for the hiker worked example.
 //!
 //! Correspondence is BY CONVENTION: the struct names, field names, and function
-//! names here must match `.rascador/temporal.tent`. The generated proptest in
+//! names here must match `.hiker/temporal.tent`. The generated proptest in
 //! `tests/generated.rs` constructs these structs and calls these functions.
 //!
 //! Run the correct version:        cargo test -p temporal

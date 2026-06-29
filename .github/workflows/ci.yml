@@ -34,7 +34,7 @@ jobs:
           components: clippy
       - uses: swatinem/rust-cache@v2
       - name: Generate Rust test bridge
-        run: cargo run -p rascador -- gen .rascador/temporal.tent --target rust
+        run: cargo run -p hiker -- gen .hiker/temporal.tent --target rust
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings
 
@@ -50,5 +50,5 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: swatinem/rust-cache@v2
       - name: Generate Rust test bridge
-        run: cargo run -p rascador -- gen .rascador/temporal.tent --target rust
+        run: cargo run -p hiker -- gen .hiker/temporal.tent --target rust
       - run: cargo test

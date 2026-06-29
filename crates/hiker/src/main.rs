@@ -1,20 +1,20 @@
-//! rascador CLI — wires the four compiler stages into two commands.
+//! hiker CLI — wires the four compiler stages into two commands.
 //!
-//!   rascador check <file.tent>
+//!   hiker check <file.tent>
 //!       Lex + parse + check. Prints a summary and exits 0 if intent compiles,
 //!       or prints every error and exits 1.
 //!
-//!   rascador gen <file.tent> [--target rust|ts|python] [-o <out>] [--module <name>]
+//!   hiker gen <file.tent> [--target rust|ts|python] [-o <out>] [--module <name>]
 //!       Checks first (refuses to generate from incoherent intent), then writes
 //!       the test bridge for the chosen target. `--module` is the
 //!       system-under-test crate/import/module name (default: temporal).
-//!       With no `-o`, output goes to `.rascador-cache/<target>/<default-name>`.
+//!       With no `-o`, output goes to `.hiker-cache/<target>/<default-name>`.
 //!       `--crate` is accepted as an alias for `--module`.
 
 use std::process::ExitCode;
 
-use rascador::backends::{self, EmitOptions};
-use rascador::{checker, parser};
+use hiker::backends::{self, EmitOptions};
+use hiker::{checker, parser};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -23,9 +23,9 @@ fn main() -> ExitCode {
         Some("gen") => cmd_gen(&args[1..]),
         _ => {
             eprintln!("usage:");
-            eprintln!("  rascador check <file.tent>");
+            eprintln!("  hiker check <file.tent>");
             eprintln!(
-                "  rascador gen   <file.tent> [--target {}] [-o <out>] [--module <name>]",
+                "  hiker gen   <file.tent> [--target {}] [-o <out>] [--module <name>]",
                 backends::TARGETS.join("|")
             );
             ExitCode::FAILURE
@@ -35,7 +35,7 @@ fn main() -> ExitCode {
 
 /// Read + parse a file into a checked Spec. Returns the spec or exits with the
 /// errors printed.
-fn load_checked(path: &str) -> Result<rascador::ast::Spec, ExitCode> {
+fn load_checked(path: &str) -> Result<hiker::ast::Spec, ExitCode> {
     let src = match std::fs::read_to_string(path) {
         Ok(s) => s,
         Err(e) => {
@@ -62,7 +62,7 @@ fn load_checked(path: &str) -> Result<rascador::ast::Spec, ExitCode> {
 
 fn cmd_check(args: &[String]) -> ExitCode {
     let Some(path) = args.first() else {
-        eprintln!("usage: rascador check <file.tent>");
+        eprintln!("usage: hiker check <file.tent>");
         return ExitCode::FAILURE;
     };
     match load_checked(path) {
@@ -115,7 +115,7 @@ fn cmd_gen(args: &[String]) -> ExitCode {
 
     let Some(path) = path else {
         eprintln!(
-            "usage: rascador gen <file.tent> [--target {}] [-o <out>] [--module <name>]",
+            "usage: hiker gen <file.tent> [--target {}] [-o <out>] [--module <name>]",
             backends::TARGETS.join("|")
         );
         return ExitCode::FAILURE;
@@ -130,9 +130,9 @@ fn cmd_gen(args: &[String]) -> ExitCode {
         return ExitCode::FAILURE;
     };
 
-    // Default output: .rascador-cache/<target>/<backend default file name>.
+    // Default output: .hiker-cache/<target>/<backend default file name>.
     let out =
-        out.unwrap_or_else(|| format!(".rascador-cache/{target}/{}", backend.default_filename()));
+        out.unwrap_or_else(|| format!(".hiker-cache/{target}/{}", backend.default_filename()));
 
     let spec = match load_checked(path) {
         Ok(s) => s,
@@ -140,7 +140,7 @@ fn cmd_gen(args: &[String]) -> ExitCode {
     };
 
     let code = backend.emit(&spec, &EmitOptions { module });
-    // Create the output directory (e.g. .rascador-cache/rust/) if needed.
+    // Create the output directory (e.g. .hiker-cache/rust/) if needed.
     if let Some(parent) = std::path::Path::new(&out).parent() {
         if !parent.as_os_str().is_empty() {
             if let Err(e) = std::fs::create_dir_all(parent) {

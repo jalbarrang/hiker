@@ -1,4 +1,4 @@
-# rascador grammar reference
+# hiker grammar reference
 
 The `.tent` language: grammar, type rules, CLI, and the codegen model. Read this
 before writing or editing any spec. Per-command flows live next to this file
@@ -7,14 +7,14 @@ before writing or editing any spec. Per-command flows live next to this file
 ## CLI
 
 ```sh
-rascador check <file.tent>
-rascador gen   <file.tent> [--target rust|ts|python] [-o <out>] [--module <name>]
+hiker check <file.tent>
+hiker gen   <file.tent> [--target rust|ts|python] [-o <out>] [--module <name>]
 ```
 
 - `--target` defaults to `rust`. Known targets: `rust`, `ts`, `python`.
 - `--module` is the system-under-test import the tests call into: a Rust crate
   name, a TS import path, or a Python module name (default `temporal`).
-- With no `-o`, output goes to `.rascador-cache/<target>/<default-name>`
+- With no `-o`, output goes to `.hiker-cache/<target>/<default-name>`
   (`generated.rs` / `generated.test.ts` / `test_generated.py`).
 - `gen` refuses to emit from intent that does not `check`.
 
@@ -107,7 +107,7 @@ Names and field names must match the `.tent` spec exactly.
 
 ## Generated tests, cache, and discovery
 
-Everything `gen` writes lands under `.rascador-cache/` (gitignore it); the `.tent`
+Everything `gen` writes lands under `.hiker-cache/` (gitignore it); the `.tent`
 file is the single source of truth. Each runner needs a small committed shim to
 find the dotted cache dir. Full per-language wiring is in `gen.md`.
 

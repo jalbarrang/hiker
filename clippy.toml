@@ -1,5 +1,5 @@
 # =============================================================================
-# Clippy Configuration — rascador
+# Clippy Configuration — hiker
 # Philosophy borrowed from hachimi-redux: deny correctness, warn on quality,
 # and ban unwrap() in non-test code. Adapted for a safe, std-only project, so
 # the IL2CPP/FFI/unsafe-specific knobs are dropped.

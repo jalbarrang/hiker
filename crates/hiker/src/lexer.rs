@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn lexes_the_real_spec_without_error() {
-        let src = include_str!("../../../.rascador/temporal.tent");
+        let src = include_str!("../../../.hiker/temporal.tent");
         assert!(tokenize(src).is_ok());
     }
 

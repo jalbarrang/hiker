@@ -1,15 +1,15 @@
 [package]
-name = "rascador"
+name = "hiker"
 version = "0.1.0"
 edition = "2021"
 description = "A tiny DSL for stating architectural intent that compiles, with a Rust proptest bridge."
 
 [[bin]]
-name = "rascador"
+name = "hiker"
 path = "src/main.rs"
 
 [lib]
-name = "rascador"
+name = "hiker"
 path = "src/lib.rs"
 
 [lints]

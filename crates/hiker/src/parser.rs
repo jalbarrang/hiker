@@ -345,7 +345,7 @@ law det(a, b) {
 
     #[test]
     fn parses_the_real_spec() {
-        let src = include_str!("../../../.rascador/temporal.tent");
+        let src = include_str!("../../../.hiker/temporal.tent");
         let spec = parse(src).unwrap();
         assert_eq!(spec.sorts.len(), 3);
         assert_eq!(spec.relations.len(), 2);

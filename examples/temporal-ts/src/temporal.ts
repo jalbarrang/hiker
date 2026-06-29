@@ -1,11 +1,11 @@
-// System-under-test for the rascador TypeScript worked example.
+// System-under-test for the hiker TypeScript worked example.
 //
 // Correspondence is BY CONVENTION: the exported function names and the object
-// field names must match `.rascador/temporal.tent`. The generated fast-check
-// test (in .rascador-cache/ts/) imports this module and checks each relation
+// field names must match `.hiker/temporal.tent`. The generated fast-check
+// test (in .hiker-cache/ts/) imports this module and checks each relation
 // against its law.
 //
-// Toggle the bug with the env var RASCADOR_BUGGY=1.
+// Toggle the bug with the env var HIKER_BUGGY=1.
 
 export interface TemporalPoint {
   media: number;
@@ -18,7 +18,7 @@ export interface TemporalInterval {
   t1: number;
 }
 
-const BUGGY = process.env.RASCADOR_BUGGY === "1";
+const BUGGY = process.env.HIKER_BUGGY === "1";
 
 // Two intervals overlap iff they share a media item and their ranges intersect.
 export function temporal_overlap(a: TemporalInterval, b: TemporalInterval): boolean {

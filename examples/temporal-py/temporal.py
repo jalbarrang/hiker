@@ -1,11 +1,11 @@
-"""System-under-test for the rascador Python worked example.
+"""System-under-test for the hiker Python worked example.
 
 Correspondence is BY CONVENTION: the class names, their fields, and the
-function names must match `.rascador/temporal.tent`. The generated Hypothesis
-test (in .rascador-cache/python/) imports this module and checks each relation
+function names must match `.hiker/temporal.tent`. The generated Hypothesis
+test (in .hiker-cache/python/) imports this module and checks each relation
 against its law.
 
-Toggle the bug with the env var RASCADOR_BUGGY=1.
+Toggle the bug with the env var HIKER_BUGGY=1.
 """
 
 import os
@@ -25,7 +25,7 @@ class TemporalInterval:
     t1: int
 
 
-_BUGGY = os.environ.get("RASCADOR_BUGGY") == "1"
+_BUGGY = os.environ.get("HIKER_BUGGY") == "1"
 
 
 def temporal_overlap(a, b):

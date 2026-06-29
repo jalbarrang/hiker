@@ -1,13 +1,13 @@
 ---
-name: rascador
-description: Capture, compile, and enforce architectural intent with rascador, a tiny DSL whose `.tent` specs declare sorts, relations, and laws and generate Rust/TypeScript/Python property tests. Use when a repo has a `.rascador/` directory or `.tent` files, when setting up intent for a new initiative or plan, when stating or checking an architectural invariant (a mapping, a distinction two parts must agree on, a deterministic rule), or when an agent might quietly collapse a domain distinction to make a test pass. Sub-commands: `create` (set up intent for an initiative), `gen` (wire property tests), `check` (compile the intent). Not for general feature or UI work.
+name: hiker
+description: Capture, compile, and enforce architectural intent with hiker, a tiny DSL whose `.tent` specs declare sorts, relations, and laws and generate Rust/TypeScript/Python property tests. Use when a repo has a `.hiker/` directory or `.tent` files, when setting up intent for a new initiative or plan, when stating or checking an architectural invariant (a mapping, a distinction two parts must agree on, a deterministic rule), or when an agent might quietly collapse a domain distinction to make a test pass. Sub-commands: `create` (set up intent for an initiative), `gen` (wire property tests), `check` (compile the intent). Not for general feature or UI work.
 version: 1.1.0
 ---
 
-# rascador
+# hiker
 
 A small DSL that keeps **architectural intent** in a *compiled* artifact so code
-can't quietly drift from it. Intent lives in `.rascador/*.tent`; the `rascador`
+can't quietly drift from it. Intent lives in `.hiker/*.tent`; the `hiker`
 CLI checks the intent is coherent and generates property tests from it. Two
 safety nets: **intent compiles** (incoherent specs are type errors) and **intent
 is enforced** (generated tests fail when code contradicts a law).
@@ -16,11 +16,11 @@ is enforced** (generated tests fail when code contradicts a law).
 
 Do these before proceeding:
 
-1. **Locate intent.** Each intent is a folder `.rascador/tents/<slug>/` holding
+1. **Locate intent.** Each intent is a folder `.hiker/tents/<slug>/` holding
    `<slug>.tent` (the spec) and `CONTEXT.md` (what it means + code anchors).
-   Read any `CONTEXT.md`, then `rascador check` each `<slug>.tent` to confirm the
-   intent still compiles. If `rascador` isn't on PATH:
-   `cargo install --path <rascador-repo>/crates/rascador`.
+   Read any `CONTEXT.md`, then `hiker check` each `<slug>.tent` to confirm the
+   intent still compiles. If `hiker` isn't on PATH:
+   `cargo install --path <hiker-repo>/crates/hiker`.
 2. **If invoked with a sub-command** (`create`, `gen`), you MUST read
    `reference/<command>.md` next — it defines the flow. Don't improvise it.
 3. **Before writing or editing any `.tent`**, read `reference/grammar.md`.
@@ -31,7 +31,7 @@ Do these before proceeding:
   `.tent` and wire a check script. → `reference/create.md`
 - **`gen`** — emit property tests from a spec and wire them into the project's
   test runner (rust/ts/python). → `reference/gen.md`
-- **`check`** — `rascador check .rascador/tents/<slug>/<slug>.tent`. Prints
+- **`check`** — `hiker check .hiker/tents/<slug>/<slug>.tent`. Prints
   `OK: N sorts, N relations, N laws` (exit 0) or line-numbered errors. Run it
   after every `.tent` edit. (inline; no reference needed)
 

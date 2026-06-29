@@ -1,4 +1,4 @@
-//! rascador — a tiny DSL for stating architectural intent.
+//! hiker — a tiny DSL for stating architectural intent.
 //!
 //! Pipeline (one module per compiler stage; build them in this order):
 //!   lexer   : &str        -> Vec<Token>        (turn text into words)

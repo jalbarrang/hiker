@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn real_spec_compiles() {
-        let src = include_str!("../../../.rascador/temporal.tent");
+        let src = include_str!("../../../.hiker/temporal.tent");
         assert!(check_src(src).is_ok());
     }
 

@@ -1,4 +1,4 @@
-# rascador
+# hiker
 
 A tiny DSL for stating **architectural intent** that *compiles* — and a bridge
 that turns that intent into property tests (Rust, TypeScript, or Python) so your
@@ -25,8 +25,8 @@ A law body is a list of comparisons (implicitly AND-ed). A clause may also be an
 consequent` in every backend — useful for conditional invariants like
 determinism (`a.tag == b.tag => a.status == b.status`).
 
-Intent files live in **`.rascador/`** with the **`.tent`** extension
-(in-**tent** → intent). See [`.rascador/temporal.tent`](.rascador/temporal.tent).
+Intent files live in **`.hiker/`** with the **`.tent`** extension
+(in-**tent** → intent). See [`.hiker/temporal.tent`](.hiker/temporal.tent).
 
 ## The worked example
 
@@ -52,13 +52,13 @@ chosen **backend** is target-specific. Adding a language = adding a backend.
 
 ```sh
 # Does intent compile? (language-agnostic)
-cargo run -p rascador -- check .rascador/temporal.tent
+cargo run -p hiker -- check .hiker/temporal.tent
 
 # Emit the test bridge for a target. With no -o, output goes to
-# .rascador-cache/<target>/<default-name> (gitignored).
-cargo run -p rascador -- gen .rascador/temporal.tent --target rust
-cargo run -p rascador -- gen .rascador/temporal.tent --target ts
-cargo run -p rascador -- gen .rascador/temporal.tent --target python
+# .hiker-cache/<target>/<default-name> (gitignored).
+cargo run -p hiker -- gen .hiker/temporal.tent --target rust
+cargo run -p hiker -- gen .hiker/temporal.tent --target ts
+cargo run -p hiker -- gen .hiker/temporal.tent --target python
 ```
 
 `--module <name>` sets the system-under-test import (crate / import path /
@@ -66,9 +66,9 @@ module). `--target` defaults to `rust`.
 
 ## Generated tests are disposable artifacts
 
-Everything `gen` writes lands in **`.rascador-cache/`** (gitignored). The single
+Everything `gen` writes lands in **`.hiker-cache/`** (gitignored). The single
 source of truth is the `.tent` file; the tests are regenerated, never committed.
-Consequence: **run `rascador gen` before running tests** (CI does this as a
+Consequence: **run `hiker gen` before running tests** (CI does this as a
 pre-test step) — a fresh checkout has no generated tests until you do.
 
 Each runner needs help finding the cache, because they all skip dotted dirs:
@@ -91,7 +91,7 @@ test (whose oracle is the real law) catches it every time, while
 
 ```sh
 # Rust — buggy via a cargo feature
-cargo run -p rascador -- gen .rascador/temporal.tent --target rust
+cargo run -p hiker -- gen .hiker/temporal.tent --target rust
 cargo test -p temporal                     # correct: 2 passed
 cargo test -p temporal --features buggy    # buggy: law_point_in_interval FAILS
 
@@ -114,7 +114,7 @@ that a naive unit test would have waved through.
 There are two distinct safety nets here:
 
 1. **Intent compiles** — try writing `p.t0` (an interval field) on a point in
-   the spec and run `rascador check`: it's a *type error*. The collapse can't
+   the spec and run `hiker check`: it's a *type error*. The collapse can't
    even be stated.
 2. **Intent is enforced** — the generated proptest fails when the real code
    contradicts a law.
@@ -123,9 +123,9 @@ There are two distinct safety nets here:
 
 The work is split across two plans in `.plans/`:
 
-- `rascador-intent-dsl` — the compiler, one stage per task (lexer → parser →
+- `hiker-intent-dsl` — the compiler, one stage per task (lexer → parser →
   checker → codegen → CLI), plus the Rust worked example.
-- `rascador-multitarget-backends` — pluggable rust/ts/python backends, the
+- `hiker-multitarget-backends` — pluggable rust/ts/python backends, the
   cache-artifact layout, and the TS + Python worked examples.
 
 Each task teaches one piece.

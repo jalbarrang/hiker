@@ -2,7 +2,7 @@
 name = "temporal"
 version = "0.1.0"
 edition = "2021"
-description = "System-under-test for the rascador worked example."
+description = "System-under-test for the hiker worked example."
 
 [features]
 # Enable the deliberately wrong implementation to watch proptest catch it.
