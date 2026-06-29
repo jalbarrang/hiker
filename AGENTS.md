@@ -81,20 +81,3 @@ scripts/release-version.sh    channel + version resolver
 install                       channel-aware installer (repo slug: jalbarrang/hiker)
 .github/workflows/            ci.yml (fmt→clippy→test), release.yml (channels)
 ```
-
-## Gotchas
-
-- **Rust example `include!` path resolves to the repo root, not the example
-  dir.** `examples/temporal/tests/hiker_generated.rs` includes
-  `../../../.hiker-cache/rust/generated.rs`. Always `gen -o .hiker-cache/rust/generated.rs`
-  from the repo root before `cargo test -p temporal`.
-- **`npm test` needs `gen` first.** The TS example's `pretest` runs it; a bare
-  `vitest` against a fresh checkout fails with "file does not exist".
-- **SKILL.md frontmatter: a `description` containing `": "` must be a block
-  scalar (`>-`).** A plain scalar errors with "mapping values are not allowed
-  here". Folded block scalars allow colons and backticks.
-- **`git mv` stages the rename, but later content edits are unstaged.** After a
-  bulk rename + `sed` pass, `git add` the content changes too — otherwise the
-  commit captures renames with old content ("rename 100%" in the summary).
-- **Pushing to `stable`/`beta` fires `release.yml`.** Don't push those branches
-  unless you intend to cut a release.
