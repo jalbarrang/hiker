@@ -1,0 +1,26 @@
+# =============================================================================
+# Clippy Configuration — rascador
+# Philosophy borrowed from hachimi-redux: deny correctness, warn on quality,
+# and ban unwrap() in non-test code. Adapted for a safe, std-only project, so
+# the IL2CPP/FFI/unsafe-specific knobs are dropped.
+# =============================================================================
+
+# AI loves deeply nested match/if chains. Force decomposition.
+cognitive-complexity-threshold = 20
+
+# AI loves monolithic functions.
+too-many-lines-threshold = 100
+
+# AI also generates needlessly nested types.
+type-complexity-threshold = 250
+
+# Catch AI's favorite shortcut. Every unwrap() in non-test code needs to become
+# `?`, `.expect("reason")`, or proper handling. (Allowed in tests via a
+# crate-level `#![cfg_attr(test, allow(clippy::disallowed_methods))]`.)
+disallowed-methods = [
+    { path = "core::result::Result::unwrap", reason = "Use `?`, `.unwrap_or()`, or `.expect(\"reason\")`. unwrap() panics in production." },
+    { path = "core::option::Option::unwrap", reason = "Use `?`, `.unwrap_or()`, or `.expect(\"reason\")`. unwrap() panics in production." },
+]
+
+# Prevent use of features newer than the supported floor.
+msrv = "1.87.0"

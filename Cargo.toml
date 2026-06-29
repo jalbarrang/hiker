@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/rascador",
+    "examples/temporal",
+]
+
+# ============================================================================
+# Lint Configuration — shared across the workspace.
+# Strategy: deny correctness (always bugs), warn on quality. CI runs clippy with
+# `-D warnings`, so every warning becomes a hard error in the pipeline.
+# Members opt in with `[lints]\nworkspace = true`.
+# ============================================================================
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+non_ascii_idents = "deny"
+
+[workspace.lints.clippy]
+# Lint groups.
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+
+# Anti-AI-slop lints: things AI-generated code does wrong.
+disallowed_methods = "warn"                  # bans unwrap() (see clippy.toml)
+unnecessary_wraps = "warn"
+redundant_clone = "warn"
+redundant_closure_for_method_calls = "warn"
+inefficient_to_string = "warn"
+cloned_instead_of_copied = "warn"
+manual_let_else = "warn"
+implicit_clone = "warn"
+map_unwrap_or = "warn"
+unnested_or_patterns = "warn"
+
+# Allowed: too noisy or not worth it for this project.
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+doc_markdown = "allow"

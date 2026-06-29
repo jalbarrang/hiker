@@ -1,0 +1,16 @@
+{
+  "name": "temporal-ts",
+  "private": true,
+  "type": "module",
+  "description": "System-under-test for the rascador TypeScript worked example.",
+  "scripts": {
+    "gen": "cargo run -q -p rascador -- gen ../../.rascador/temporal.tent --target ts --module ../../src/temporal -o .rascador-cache/ts/generated.test.ts",
+    "pretest": "npm run gen",
+    "test": "vitest run",
+    "test:buggy": "npm run gen && RASCADOR_BUGGY=1 vitest run"
+  },
+  "devDependencies": {
+    "fast-check": "^3.23.0",
+    "vitest": "^3.0.0"
+  }
+}

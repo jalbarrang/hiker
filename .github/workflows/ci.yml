@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Stage 1: Formatting — fast, no compile.
+  # ──────────────────────────────────────────────────────────────
+  fmt:
+    name: "1 · Rustfmt"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --check
+
+  # ──────────────────────────────────────────────────────────────
+  # Stage 2: Clippy — ZERO WARNINGS. `-D warnings` makes any warning fatal.
+  # The generated Rust test bridge must exist first so `--all-targets` can
+  # compile the committed include! shim.
+  # ──────────────────────────────────────────────────────────────
+  clippy:
+    name: "2 · Clippy (zero warnings)"
+    needs: [fmt]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: swatinem/rust-cache@v2
+      - name: Generate Rust test bridge
+        run: cargo run -p rascador -- gen .rascador/temporal.tent --target rust
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+  # ──────────────────────────────────────────────────────────────
+  # Stage 3: Tests.
+  # ──────────────────────────────────────────────────────────────
+  test:
+    name: "3 · Test"
+    needs: [clippy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+      - name: Generate Rust test bridge
+        run: cargo run -p rascador -- gen .rascador/temporal.tent --target rust
+      - run: cargo test

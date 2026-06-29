@@ -1,0 +1,16 @@
+[package]
+name = "rascador"
+version = "0.1.0"
+edition = "2021"
+description = "A tiny DSL for stating architectural intent that compiles, with a Rust proptest bridge."
+
+[[bin]]
+name = "rascador"
+path = "src/main.rs"
+
+[lib]
+name = "rascador"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
