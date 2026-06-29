@@ -122,6 +122,16 @@ fn check_law(
         arg_sort.insert(arg.as_str(), param.sort.as_str());
     }
 
+    // An empty body constrains nothing: the generated test's oracle would be
+    // `true`, so the implementation could do anything and still pass. That is a
+    // silent enforcement hole, so reject it loudly.
+    if law.clauses.is_empty() {
+        errors.push(format!(
+            "line {}: law `{}` has an empty body (constrains nothing)",
+            law.line, law.relation
+        ));
+    }
+
     // Check every clause. An implication type-checks both of its comparisons.
     for clause in &law.clauses {
         match clause {
@@ -220,6 +230,26 @@ fn type_of(
     }
 }
 
+/// Non-fatal lints: things that compile but probably aren't what you meant.
+///
+/// Currently one rule: a relation with no law is *declared intent that is never
+/// enforced* (no test is generated for it). hiker's whole point is that drift
+/// fails loudly, so we surface this rather than let it pass silently. It is a
+/// warning, not an error, because declaring a relation before writing its law
+/// is a legitimate work-in-progress state.
+pub fn warnings(spec: &Spec) -> Vec<String> {
+    let mut out = Vec::new();
+    for r in &spec.relations {
+        if !spec.laws.iter().any(|law| law.relation == r.name) {
+            out.push(format!(
+                "warning: relation `{}` has no law \u{2014} declared intent is not enforced",
+                r.name
+            ));
+        }
+    }
+    out
+}
+
 fn op_str(op: CmpOp) -> &'static str {
     match op {
         CmpOp::Eq => "==",
@@ -290,6 +320,35 @@ law point_in_interval(p, i) {
             errs.iter().any(|e| e.contains("has no field `t0`")),
             "got: {errs:?}"
         );
+    }
+
+    #[test]
+    fn rejects_empty_law_body() {
+        let src = "\
+sort P
+relation r(a: P)
+law r(a) { }";
+        let errs = check_src(src).unwrap_err();
+        assert!(
+            errs.iter().any(|e| e.contains("empty body")),
+            "got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn warns_on_unlawed_relation() {
+        let spec = parse("sort P\nrelation r(a: P, b: P)").unwrap();
+        let warns = warnings(&spec);
+        assert!(
+            warns.iter().any(|w| w.contains("relation `r` has no law")),
+            "got: {warns:?}"
+        );
+    }
+
+    #[test]
+    fn real_spec_has_no_warnings() {
+        let spec = parse(include_str!("../../../.hiker/temporal.tent")).unwrap();
+        assert!(warnings(&spec).is_empty(), "got: {:?}", warnings(&spec));
     }
 
     #[test]

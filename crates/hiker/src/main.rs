@@ -57,6 +57,10 @@ fn load_checked(path: &str) -> Result<hiker::ast::Spec, ExitCode> {
         }
         return Err(ExitCode::FAILURE);
     }
+    // Non-fatal lints (e.g. a relation with no law): surface but don't fail.
+    for w in checker::warnings(&spec) {
+        eprintln!("  {w}");
+    }
     Ok(spec)
 }
 
