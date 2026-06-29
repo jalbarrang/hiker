@@ -52,12 +52,26 @@ target-specific. Adding a language = adding a `Backend`.
 
 ## Install
 
+**macOS / Linux:**
+
 ```sh
 # stable (default)
 curl -fsSL https://raw.githubusercontent.com/jalbarrang/hiker/stable/install | sh
 # latest beta
 curl -fsSL https://raw.githubusercontent.com/jalbarrang/hiker/stable/install | sh -s -- --channel beta
 ```
+
+**Windows (PowerShell):**
+
+```powershell
+# stable (default)
+irm https://raw.githubusercontent.com/jalbarrang/hiker/stable/install.ps1 | iex
+# latest beta (pass options via a scriptblock)
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jalbarrang/hiker/stable/install.ps1))) -Channel beta
+```
+
+The installer drops `hiker.exe` in `%USERPROFILE%\.hiker\bin` and adds it to your
+user PATH (restart the terminal to pick it up).
 
 Or build from source: `cargo build --release -p hiker` → `target/release/hiker`.
 
@@ -124,7 +138,7 @@ crates/hiker/        the compiler + CLI (lexer, parser, checker, backends)
 .hiker/temporal.tent the worked-example intent spec
 examples/temporal*   systems-under-test (Rust / TS / Python) that the tests run against
 skills/hiker/        the agent skill: how to author and check intent
-scripts/ + install   release-version resolver + channel-aware installer
+scripts/ + install   release-version resolver + channel-aware installer (install.ps1 = Windows)
 docs/RELEASING.md    the release/channel model
 ```
 
