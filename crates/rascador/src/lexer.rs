@@ -39,6 +39,9 @@ pub enum Tok {
     Lt,   // <
     Ge,   // >=
     Gt,   // >
+
+    // Implication, separating a law clause's antecedent from its consequent.
+    FatArrow, // =>
 }
 
 /// A token plus the source line it came from (1-indexed).
@@ -85,6 +88,14 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, String> {
         if c == '=' && i + 1 < chars.len() && chars[i + 1] == '=' {
             tokens.push(Token {
                 tok: Tok::EqEq,
+                line,
+            });
+            i += 2;
+            continue;
+        }
+        if c == '=' && i + 1 < chars.len() && chars[i + 1] == '>' {
+            tokens.push(Token {
+                tok: Tok::FatArrow,
                 line,
             });
             i += 2;

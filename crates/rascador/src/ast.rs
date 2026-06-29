@@ -52,17 +52,28 @@ pub struct Param {
     pub sort: String,
 }
 
-/// `law point_in_interval(p, i) { ...predicates... }`.
+/// `law point_in_interval(p, i) { ...clauses... }`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Law {
     pub relation: String,
     pub args: Vec<String>,
-    pub preds: Vec<Pred>,
+    pub clauses: Vec<Clause>,
     pub line: usize,
 }
 
-/// One predicate line inside a law body, e.g. `i.t0 <= p.t`.
-/// All predicates in a law are implicitly AND-ed together.
+/// One line inside a law body. All clauses in a law are implicitly AND-ed.
+///
+/// A clause is either a single comparison, or an implication
+/// `antecedent => consequent` between two comparisons. Implication lets a law
+/// state conditional invariants, e.g. determinism: `a.tag == b.tag => a.status
+/// == b.status`.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Clause {
+    Compare(Pred),
+    Implies { ante: Pred, cons: Pred, line: usize },
+}
+
+/// One comparison, e.g. `i.t0 <= p.t`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pred {
     pub lhs: Expr,

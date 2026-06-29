@@ -73,12 +73,12 @@ fn generate_law(law: &Law, spec: &Spec, sorts: &HashMap<&str, &Sort>) -> String 
         }
     }
 
-    let oracle = if law.preds.is_empty() {
+    let oracle = if law.clauses.is_empty() {
         "true".to_string()
     } else {
-        law.preds
+        law.clauses
             .iter()
-            .map(pred_to_ts)
+            .map(clause_to_ts)
             .collect::<Vec<_>>()
             .join(" && ")
     };
@@ -116,6 +116,16 @@ fn strategy_for(ty: &Ty) -> &'static str {
         // No-field sort = an identity id in a tiny range, so collisions (and
         // thus law violations) are likely to be hit.
         Ty::Sort(_) => "fc.integer({ min: 0, max: 1 })",
+    }
+}
+
+fn clause_to_ts(clause: &Clause) -> String {
+    match clause {
+        Clause::Compare(p) => pred_to_ts(p),
+        // `antecedent => consequent` is logically `(!antecedent || consequent)`.
+        Clause::Implies { ante, cons, .. } => {
+            format!("(!{} || {})", pred_to_ts(ante), pred_to_ts(cons))
+        }
     }
 }
 

@@ -18,7 +18,12 @@ and code generator — the anatomy of every compiler — one stage at a time.
 | **sort** | a kind of entity | `TemporalPoint`, `TemporalInterval` |
 | **relation** | a named, *typed* relationship | `point_in_interval(TemporalPoint, TemporalInterval)` |
 | **well-formedness** | when a relation is valid to state | left must be a point, right an interval |
-| **law** | the predicate that must hold | point's instant lies within `[t0, t1]` |
+| **law** | the predicate(s) that must hold | point's instant lies within `[t0, t1]` |
+
+A law body is a list of comparisons (implicitly AND-ed). A clause may also be an
+**implication** `antecedent => consequent`, which lowers to `!antecedent ||
+consequent` in every backend — useful for conditional invariants like
+determinism (`a.tag == b.tag => a.status == b.status`).
 
 Intent files live in **`.rascador/`** with the **`.tent`** extension
 (in-**tent** → intent). See [`.rascador/temporal.tent`](.rascador/temporal.tent).

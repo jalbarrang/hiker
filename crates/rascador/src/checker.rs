@@ -122,38 +122,54 @@ fn check_law(
         arg_sort.insert(arg.as_str(), param.sort.as_str());
     }
 
-    // Check every predicate.
-    for pred in &law.preds {
-        let lhs = type_of(&pred.lhs, &arg_sort, sorts, pred.line, errors);
-        let rhs = type_of(&pred.rhs, &arg_sort, sorts, pred.line, errors);
-        // If a name failed to resolve, the error is already recorded; skip.
-        let (Some(lhs), Some(rhs)) = (lhs, rhs) else {
-            continue;
-        };
-
-        match pred.op {
-            // Ordering operators require integers on both sides.
-            CmpOp::Le | CmpOp::Lt | CmpOp::Ge | CmpOp::Gt => {
-                if lhs != ExprTy::Int || rhs != ExprTy::Int {
-                    errors.push(format!(
-                        "line {}: comparison `{}` needs integers, got {} and {}",
-                        pred.line,
-                        op_str(pred.op),
-                        ty_str(&lhs),
-                        ty_str(&rhs),
-                    ));
-                }
+    // Check every clause. An implication type-checks both of its comparisons.
+    for clause in &law.clauses {
+        match clause {
+            Clause::Compare(p) => check_pred(p, &arg_sort, sorts, errors),
+            Clause::Implies { ante, cons, .. } => {
+                check_pred(ante, &arg_sort, sorts, errors);
+                check_pred(cons, &arg_sort, sorts, errors);
             }
-            // Equality requires both sides to be the *same* type.
-            CmpOp::Eq => {
-                if lhs != rhs {
-                    errors.push(format!(
-                        "line {}: `==` compares mismatched types {} and {}",
-                        pred.line,
-                        ty_str(&lhs),
-                        ty_str(&rhs),
-                    ));
-                }
+        }
+    }
+}
+
+/// Type-check a single comparison.
+fn check_pred(
+    pred: &Pred,
+    arg_sort: &HashMap<&str, &str>,
+    sorts: &HashMap<&str, &Sort>,
+    errors: &mut Vec<String>,
+) {
+    let lhs = type_of(&pred.lhs, arg_sort, sorts, pred.line, errors);
+    let rhs = type_of(&pred.rhs, arg_sort, sorts, pred.line, errors);
+    // If a name failed to resolve, the error is already recorded; skip.
+    let (Some(lhs), Some(rhs)) = (lhs, rhs) else {
+        return;
+    };
+
+    match pred.op {
+        // Ordering operators require integers on both sides.
+        CmpOp::Le | CmpOp::Lt | CmpOp::Ge | CmpOp::Gt => {
+            if lhs != ExprTy::Int || rhs != ExprTy::Int {
+                errors.push(format!(
+                    "line {}: comparison `{}` needs integers, got {} and {}",
+                    pred.line,
+                    op_str(pred.op),
+                    ty_str(&lhs),
+                    ty_str(&rhs),
+                ));
+            }
+        }
+        // Equality requires both sides to be the *same* type.
+        CmpOp::Eq => {
+            if lhs != rhs {
+                errors.push(format!(
+                    "line {}: `==` compares mismatched types {} and {}",
+                    pred.line,
+                    ty_str(&lhs),
+                    ty_str(&rhs),
+                ));
             }
         }
     }

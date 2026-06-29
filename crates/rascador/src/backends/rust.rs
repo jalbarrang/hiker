@@ -73,13 +73,13 @@ fn generate_law(law: &Law, spec: &Spec, sorts: &HashMap<&str, &Sort>) -> String 
         }
     }
 
-    // The oracle: AND of all predicates (or `true` if there are none).
-    let oracle = if law.preds.is_empty() {
+    // The oracle: AND of all clauses (or `true` if there are none).
+    let oracle = if law.clauses.is_empty() {
         "true".to_string()
     } else {
-        law.preds
+        law.clauses
             .iter()
-            .map(pred_to_rust)
+            .map(clause_to_rust)
             .collect::<Vec<_>>()
             .join(" && ")
     };
@@ -124,6 +124,16 @@ fn strategy_for(ty: &Ty, sorts: &HashMap<&str, &Sort>) -> (&'static str, &'stati
             // (Nested structs with fields are out of scope for v0.)
             let _ = sorts; // kept for future nested-struct support
             ("u32", "0u32..2u32")
+        }
+    }
+}
+
+fn clause_to_rust(clause: &Clause) -> String {
+    match clause {
+        Clause::Compare(p) => pred_to_rust(p),
+        // `antecedent => consequent` is logically `(!antecedent || consequent)`.
+        Clause::Implies { ante, cons, .. } => {
+            format!("(!{} || {})", pred_to_rust(ante), pred_to_rust(cons))
         }
     }
 }
@@ -188,5 +198,19 @@ mod tests {
         // calls the real impl by reference
         assert!(code.contains("point_in_interval(&p, &i)"));
         assert!(code.contains("prop_assert_eq!(actual, oracle);"));
+    }
+
+    #[test]
+    fn implication_lowers_to_or_not() {
+        let src = "\
+sort Tag
+sort E { tag: Tag, status: Int }
+relation det(a: E, b: E)
+law det(a, b) {
+  a.tag == b.tag => a.status == b.status
+}";
+        let spec = parse(src).unwrap();
+        let code = generate(&spec, "e");
+        assert!(code.contains("(!(a.tag == b.tag) || (a.status == b.status))"));
     }
 }

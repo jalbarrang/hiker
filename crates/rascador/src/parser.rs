@@ -11,7 +11,8 @@
 //!   field     := Ident ":" Ident                 // type: "Int" or a sort name
 //!   relation  := "relation" Ident "(" param ("," param)* ")"
 //!   param     := Ident ":" Ident
-//!   law       := "law" Ident "(" Ident ("," Ident)* ")" "{" pred* "}"
+//!   law       := "law" Ident "(" Ident ("," Ident)* ")" "{" clause* "}"
+//!   clause    := pred ( "=>" pred )?
 //!   pred      := expr op expr
 //!   expr      := Int | Ident ( "." Ident )?
 //!   op        := "==" | "<=" | "<" | ">=" | ">"
@@ -186,17 +187,34 @@ impl Parser {
         }
         self.expect(Tok::RParen)?;
         self.expect(Tok::LBrace)?;
-        let mut preds = Vec::new();
+        let mut clauses = Vec::new();
         while self.peek() != Some(&Tok::RBrace) {
-            preds.push(self.parse_pred()?);
+            clauses.push(self.parse_clause()?);
         }
         self.expect(Tok::RBrace)?;
         Ok(Law {
             relation,
             args,
-            preds,
+            clauses,
             line,
         })
+    }
+
+    /// A clause is a comparison, optionally followed by `=> comparison`.
+    fn parse_clause(&mut self) -> Result<Clause, String> {
+        let line = self.line();
+        let first = self.parse_pred()?;
+        if self.peek() == Some(&Tok::FatArrow) {
+            self.bump();
+            let cons = self.parse_pred()?;
+            Ok(Clause::Implies {
+                ante: first,
+                cons,
+                line,
+            })
+        } else {
+            Ok(Clause::Compare(first))
+        }
     }
 
     fn parse_pred(&mut self) -> Result<Pred, String> {
@@ -287,13 +305,40 @@ law r(a, b) {
         let law = &spec.laws[0];
         assert_eq!(law.relation, "r");
         assert_eq!(law.args, vec!["a", "b"]);
-        assert_eq!(law.preds.len(), 2);
-        assert_eq!(law.preds[0].op, CmpOp::Le);
+        assert_eq!(law.clauses.len(), 2);
+        let Clause::Compare(p0) = &law.clauses[0] else {
+            panic!("expected a comparison clause");
+        };
+        assert_eq!(p0.op, CmpOp::Le);
         assert_eq!(
-            law.preds[0].lhs,
+            p0.lhs,
             Expr::Field {
                 arg: "a".into(),
                 field: "t".into()
+            }
+        );
+    }
+
+    #[test]
+    fn parses_an_implication_clause() {
+        let src = "\
+relation det(a: E, b: E)
+law det(a, b) {
+  a.tag == b.tag => a.status == b.status
+}";
+        let spec = parse(src).unwrap();
+        let law = &spec.laws[0];
+        assert_eq!(law.clauses.len(), 1);
+        let Clause::Implies { ante, cons, .. } = &law.clauses[0] else {
+            panic!("expected an implication clause");
+        };
+        assert_eq!(ante.op, CmpOp::Eq);
+        assert_eq!(cons.op, CmpOp::Eq);
+        assert_eq!(
+            ante.lhs,
+            Expr::Field {
+                arg: "a".into(),
+                field: "tag".into()
             }
         );
     }
