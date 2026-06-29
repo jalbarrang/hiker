@@ -1,131 +1,132 @@
 # hiker
 
-A tiny DSL for stating **architectural intent** that *compiles* — and a bridge
-that turns that intent into property tests (Rust, TypeScript, or Python) so your
+A tiny DSL for stating **architectural intent** that *compiles* — plus a bridge
+that turns that intent into property tests (Rust, TypeScript, Python) so your
 real code can't quietly drift away from it.
 
-> Inspired by the idea that AI agents preserve the *local* shape of a module but
-> get creative with the *global* semantics of an architecture. The fix: put the
-> intent in a compiled artifact so violations fail loudly instead of silently.
+> **Why.** AI agents preserve the *local* shape of a module but get creative with
+> the *global* semantics of an architecture — collapsing a distinction to make a
+> test pass, in a diff that looks reasonable. hiker puts the intent in a compiled
+> artifact so that collapse becomes a **compile error** and a **failing test**
+> instead of silent drift.
 
-This is a **learn-by-building** project. We hand-roll a lexer, parser, checker,
-and code generator — the anatomy of every compiler — one stage at a time.
+You *pitch a tent* — intent files use the `.tent` extension (in-**tent** →
+intent) and live in `.hiker/`.
 
-## The 4 concepts of the language
+## Two safety nets
+
+1. **Intent compiles.** Incoherent intent is a *type error*. Write `p.t0` (an
+   interval field) on a point and `hiker check` rejects it — the collapse can't
+   even be stated.
+2. **Intent is enforced.** Generated property tests (oracle = the law) fail when
+   the real code contradicts a law.
+
+## The language (4 concepts)
 
 | Concept | What it is | Example |
 |---|---|---|
-| **sort** | a kind of entity | `TemporalPoint`, `TemporalInterval` |
-| **relation** | a named, *typed* relationship | `point_in_interval(TemporalPoint, TemporalInterval)` |
-| **well-formedness** | when a relation is valid to state | left must be a point, right an interval |
-| **law** | the predicate(s) that must hold | point's instant lies within `[t0, t1]` |
+| **sort** | a kind of entity | `sort TemporalPoint { media: MediaItem, t: Int }` |
+| **relation** | a named, *typed* relationship | `relation point_in_interval(p: TemporalPoint, i: TemporalInterval)` |
+| **law** | the predicate(s) that must hold | `i.t0 <= p.t`, `p.t <= i.t1` |
+| **well-formedness** | when a relation is valid to state | enforced via the relation's parameter sorts |
 
-A law body is a list of comparisons (implicitly AND-ed). A clause may also be an
-**implication** `antecedent => consequent`, which lowers to `!antecedent ||
-consequent` in every backend — useful for conditional invariants like
-determinism (`a.tag == b.tag => a.status == b.status`).
+A law body is comparisons, implicitly AND-ed. A clause may be an implication
+`a => b` (lowers to `!a || b` in every backend) — useful for conditional
+invariants like determinism: `a.tag == b.tag => a.status == b.status`.
 
-Intent files live in **`.hiker/`** with the **`.tent`** extension
-(in-**tent** → intent). See [`.hiker/temporal.tent`](.hiker/temporal.tent).
+Full grammar + type rules: [`skills/hiker/reference/grammar.md`](skills/hiker/reference/grammar.md).
+Worked spec: [`.hiker/temporal.tent`](.hiker/temporal.tent).
 
-## The worked example
-
-Distinguish **point-like** media (an image at a moment) from **range-like** media
-(a video shot from `T0` to `T1`). Relating the two is *"does this point lie inside
-this interval?"* — **not** *"do these two intervals overlap?"*. Collapsing that
-distinction is the exact bug we want compiled intent to catch.
-
-## How it will work (pipeline)
+## Pipeline
 
 ```
-.tent text ──lexer──▶ tokens ──parser──▶ AST ──checker──▶ "intent compiles" ✅/❌
-                                          │              (language-agnostic front end)
-                                          └──backend──▶ rust   → proptest
-                                                        ts     → fast-check   ──▶ catches drift
-                                                        python → Hypothesis
+.tent text ─lexer→ tokens ─parser→ AST ─checker→ "intent compiles" ✅/❌
+                                     │            (language-agnostic front end)
+                                     └─backend→ rust   → proptest
+                                                ts     → fast-check    → catches drift
+                                                python → Hypothesis
 ```
 
-The front end (lexer/parser/checker) is the same for every language; only the
-chosen **backend** is target-specific. Adding a language = adding a backend.
+The front end (lexer/parser/checker) is language-agnostic; only the backend is
+target-specific. Adding a language = adding a `Backend`.
+
+## Install
+
+```sh
+# stable (default)
+curl -fsSL https://raw.githubusercontent.com/jalbarrang/hiker/stable/install | sh
+# latest beta
+curl -fsSL https://raw.githubusercontent.com/jalbarrang/hiker/stable/install | sh -s -- --channel beta
+```
+
+Or build from source: `cargo build --release -p hiker` → `target/release/hiker`.
 
 ## Commands
 
 ```sh
-# Does intent compile? (language-agnostic)
-cargo run -p hiker -- check .hiker/temporal.tent
-
-# Emit the test bridge for a target. With no -o, output goes to
-# .hiker-cache/<target>/<default-name> (gitignored).
-cargo run -p hiker -- gen .hiker/temporal.tent --target rust
-cargo run -p hiker -- gen .hiker/temporal.tent --target ts
-cargo run -p hiker -- gen .hiker/temporal.tent --target python
+hiker check .hiker/temporal.tent                    # does intent compile?
+hiker gen   .hiker/temporal.tent --target rust      # emit the test bridge
+hiker gen   .hiker/temporal.tent --target ts --module ../../src/temporal
+hiker --version
 ```
 
-`--module <name>` sets the system-under-test import (crate / import path /
-module). `--target` defaults to `rust`.
+- `--target` ∈ `rust | ts | python` (default `rust`).
+- `--module` sets the system-under-test import (crate / import path / module).
+- `gen` refuses to emit from intent that does not `check`.
+- `check` **warns** on a relation with no law (declared but unenforced) and
+  **errors** on an empty law body (constrains nothing).
 
-## Generated tests are disposable artifacts
+## Generated tests are disposable
 
-Everything `gen` writes lands in **`.hiker-cache/`** (gitignored). The single
-source of truth is the `.tent` file; the tests are regenerated, never committed.
-Consequence: **run `hiker gen` before running tests** (CI does this as a
-pre-test step) — a fresh checkout has no generated tests until you do.
-
-Each runner needs help finding the cache, because they all skip dotted dirs:
+`gen` writes to **`.hiker-cache/`** (gitignored). The `.tent` file is the single
+source of truth; tests are regenerated, never committed — so **run `hiker gen`
+before running tests** (CI does this as a pre-test step). Each runner skips
+dotted dirs, so the examples wire discovery explicitly:
 
 | Target | Discovery | Runner |
 |---|---|---|
 | rust | committed `include!` shim in `tests/` | `cargo test` |
 | ts | committed shim in `tests/` imports the cache file | `vitest` |
-| python | pass the explicit cache file path to pytest | `pytest` |
+| python | pass the cache file path to pytest | `pytest` |
 
-See the three `examples/temporal*` projects for the exact wiring.
+## See it catch the bug — in all three languages
 
-## See it catch a bug — in all three languages
-
-Each worked example reproduces the video's exact mistake: to reuse the
-interval-overlap code, an agent gives a point a phantom duration `[t, t+5]` —
-quietly turning point-like media into range-like media. The generated property
-test (whose oracle is the real law) catches it every time, while
-`temporal_overlap` keeps passing.
+Each `examples/temporal*` project reproduces the exact mistake: to reuse the
+interval-overlap code, an agent gives a point a phantom duration `[t, t+5]`,
+turning point-like media into range-like media. The generated property test
+catches it every time while `temporal_overlap` keeps passing.
 
 ```sh
-# Rust — buggy via a cargo feature
-cargo run -p hiker -- gen .hiker/temporal.tent --target rust
+# Rust
+hiker gen .hiker/temporal.tent --target rust -o .hiker-cache/rust/generated.rs
 cargo test -p temporal                     # correct: 2 passed
 cargo test -p temporal --features buggy    # buggy: law_point_in_interval FAILS
 
-# TypeScript (examples/temporal-ts) — buggy via env var
-cd examples/temporal-ts && npm install && npm test        # correct: 2 passed
-npm run test:buggy                                         # buggy: FAILS
+# TypeScript
+cd examples/temporal-ts && npm install && npm test   # correct: 2 passed
+npm run test:buggy                                   # buggy: FAILS
 
-# Python (examples/temporal-py) — buggy via env var
-cd examples/temporal-py && python3 -m venv .venv \
-  && .venv/bin/pip install -r requirements.txt
+# Python
+cd examples/temporal-py && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 make test         # correct: 2 passed
 make test-buggy   # buggy: FAILS
 ```
 
-A typical Rust counterexample shrinks to `p_t = -8, i_t0 = -3, i_t1 = 0`: the
-point sits *before* the interval, so the law says "not inside" — but the buggy
-code reports "inside." The intent, compiled into a property test, caught drift
-that a naive unit test would have waved through.
+## Releases
 
-There are two distinct safety nets here:
+Channel = branch: push `stable` for a semver release, `beta` for a prerelease.
+See [`docs/RELEASING.md`](docs/RELEASING.md).
 
-1. **Intent compiles** — try writing `p.t0` (an interval field) on a point in
-   the spec and run `hiker check`: it's a *type error*. The collapse can't
-   even be stated.
-2. **Intent is enforced** — the generated proptest fails when the real code
-   contradicts a law.
+## Layout
 
-## Build order
+```
+crates/hiker/        the compiler + CLI (lexer, parser, checker, backends)
+.hiker/temporal.tent the worked-example intent spec
+examples/temporal*   systems-under-test (Rust / TS / Python) that the tests run against
+skills/hiker/        the agent skill: how to author and check intent
+scripts/ + install   release-version resolver + channel-aware installer
+docs/RELEASING.md    the release/channel model
+```
 
-The work is split across two plans in `.plans/`:
-
-- `hiker-intent-dsl` — the compiler, one stage per task (lexer → parser →
-  checker → codegen → CLI), plus the Rust worked example.
-- `hiker-multitarget-backends` — pluggable rust/ts/python backends, the
-  cache-artifact layout, and the TS + Python worked examples.
-
-Each task teaches one piece.
+Status: all three backends working, CI green (fmt → clippy `-D warnings` →
+test), channel-based releases wired.
