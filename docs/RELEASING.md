@@ -39,13 +39,13 @@ scripts/release-version.sh --channel beta
 
 ```sh
 # stable (default)
-curl -fsSL https://raw.githubusercontent.com/OWNER/hiker/stable/install | sh
+curl -fsSL https://raw.githubusercontent.com/jalbarrang/hiker/stable/install | sh
 
 # latest beta
-curl -fsSL https://raw.githubusercontent.com/OWNER/hiker/stable/install | sh -s -- --channel beta
+curl -fsSL https://raw.githubusercontent.com/jalbarrang/hiker/stable/install | sh -s -- --channel beta
 
 # exact version
-curl -fsSL https://raw.githubusercontent.com/OWNER/hiker/stable/install | sh -s -- --version 1.2.3
+curl -fsSL https://raw.githubusercontent.com/jalbarrang/hiker/stable/install | sh -s -- --version 1.2.3
 ```
 
 The installer detects OS/arch, pulls the matching asset, verifies the checksum,
@@ -53,8 +53,8 @@ and drops the binary in `$HIKER_INSTALL_DIR` (default `~/.hiker/bin`).
 
 ## One-time setup before the first release
 
-- **Set the repo slug.** Replace `OWNER/hiker` in `install` (or have users export
-  `HIKER_REPO`). The workflow itself uses `${{ github.repository }}` automatically.
+- **Repo slug** is wired to `jalbarrang/hiker` in `install`; users can override with
+  `HIKER_REPO`. The workflow uses `${{ github.repository }}` automatically.
 - **Create the branches:** `git branch stable` and `git branch beta` and push them.
 - The crate version in `crates/hiker/Cargo.toml` is **stamped by CI** at build
   time, so you don't bump it by hand.

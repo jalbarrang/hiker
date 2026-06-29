@@ -11,7 +11,7 @@
 set -eu
 
 # ── EDIT ME: the GitHub repo that publishes hiker releases ───────────────────
-REPO="${HIKER_REPO:-OWNER/hiker}"
+REPO="${HIKER_REPO:-jalbarrang/hiker}"
 INSTALL_DIR="${HIKER_INSTALL_DIR:-$HOME/.hiker/bin}"
 CHANNEL="stable"
 VERSION=""
