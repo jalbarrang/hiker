@@ -18,6 +18,7 @@ pub enum Tok {
     Sort,
     Relation,
     Law,
+    Forbidden,
 
     // A name: sort names, relation names, field names, argument names.
     Ident(String),
@@ -159,6 +160,7 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, String> {
                 "sort" => Tok::Sort,
                 "relation" => Tok::Relation,
                 "law" => Tok::Law,
+                "forbidden" => Tok::Forbidden,
                 _ => Tok::Ident(word),
             };
             tokens.push(Token { tok, line });

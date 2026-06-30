@@ -13,13 +13,18 @@ real code can't quietly drift away from it.
 You *pitch a tent* — intent files use the `.tent` extension (in-**tent** →
 intent) and live in `.hiker/`.
 
-## Two safety nets
+## Three safety nets
 
 1. **Intent compiles.** Incoherent intent is a *type error*. Write `p.t0` (an
    interval field) on a point and `hiker check` rejects it — the collapse can't
    even be stated.
 2. **Intent is enforced.** Generated property tests (oracle = the law) fail when
-   the real code contradicts a law.
+   the real code contradicts a law over *random* inputs.
+3. **Intent conforms.** `hiker verify` evaluates the *same* laws over *facts
+   extracted from the real codebase* (an import graph, a banned-import grep), so
+   **structural** invariants (dependency direction, "no fs under routers/") fail
+   on a real violation, not just a generated one. See
+   [`skills/hiker/reference/verify.md`](skills/hiker/reference/verify.md).
 
 ## The language (4 concepts)
 
@@ -42,9 +47,10 @@ Worked spec: [`.hiker/temporal.tent`](.hiker/temporal.tent).
 ```
 .tent text ─lexer→ tokens ─parser→ AST ─checker→ "intent compiles" ✅/❌
                                      │            (language-agnostic front end)
-                                     └─backend→ rust   → proptest
-                                                ts     → fast-check    → catches drift
-                                                python → Hypothesis
+                                     ├─backend→ rust   → proptest
+                                     │          ts     → fast-check    → catches drift
+                                     │          python → Hypothesis        (random)
+                                     └─verify─→ facts.json → conformance    (structural)
 ```
 
 The front end (lexer/parser/checker) is language-agnostic; only the backend is
@@ -78,15 +84,18 @@ Or build from source: `cargo build --release -p hiker` → `target/release/hiker
 ## Commands
 
 ```sh
-hiker check .hiker/temporal.tent                    # does intent compile?
-hiker gen   .hiker/temporal.tent --target rust      # emit the test bridge
-hiker gen   .hiker/temporal.tent --target ts --module ../../src/temporal
+hiker check  .hiker/temporal.tent                   # does intent compile?
+hiker gen    .hiker/temporal.tent --target rust     # emit the test bridge
+hiker gen    .hiker/temporal.tent --target ts --module ../../src/temporal
+hiker verify examples/architecture.tent --facts examples/architecture.facts.json
 hiker --version
 ```
 
 - `--target` ∈ `rust | ts | python` (default `rust`).
 - `--module` sets the system-under-test import (crate / import path / module).
 - `gen` refuses to emit from intent that does not `check`.
+- `verify` evaluates laws over extracted `--facts` (structural conformance); a
+  `forbidden relation` flags any matching fact.
 - `check` **warns** on a relation with no law (declared but unenforced) and
   **errors** on an empty law body (constrains nothing).
 

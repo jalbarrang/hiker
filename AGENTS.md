@@ -29,6 +29,7 @@ crate.
 |---|---|
 | Check intent | `cargo run -p hiker -- check .hiker/temporal.tent` |
 | Generate tests | `cargo run -p hiker -- gen .hiker/temporal.tent --target rust -o .hiker-cache/rust/generated.rs` |
+| Verify conformance | `cargo run -p hiker -- verify examples/architecture.tent --facts examples/architecture.facts.json` |
 | Unit tests | `cargo test -p hiker` |
 | Lint (must be clean) | `cargo clippy --all-targets -- -D warnings` (gen the rust bridge first) |
 | Format check | `cargo fmt --check` |
@@ -52,7 +53,12 @@ crate.
   coherence rules here, with a collect-all-errors style (don't stop at first).
 - **Backends must agree on lowering.** Each backend in `crates/hiker/src/backends/`
   re-lowers clauses; implication `a => b` MUST lower to `!a || b` (`not a or b`
-  in Python). Diverging lowerings are a bug — they have per-backend tests.
+  in Python). The runtime interpreter (`eval.rs`) is bound by the same rule —
+  diverging lowerings are a bug, and there are tests pinning it in each.
+- **`verify` is conformance over EXTERNAL facts; hiker never extracts.** The
+  extractors (import graph → `facts.json`, grep → forbidden tuples) live in the
+  consuming repo, not the crate. Owner of the fact format + population modes:
+  `crates/hiker/src/verify.rs` + `skills/hiker/reference/verify.md`.
 - **Spec↔code correspondence is by name convention** (documented in each
   backend). The generated tests call functions/structs that must match the
   `.tent` names; a mismatch fails at the target compiler, not in `check`.
@@ -71,11 +77,16 @@ crate.
 crates/hiker/src/
   lexer.rs parser.rs ast.rs   front end: text → tokens → AST
   checker.rs                  "intent compiles" — coherence + lints (warnings())
+  eval.rs                     runtime law interpreter (verify's truth oracle)
+  facts.rs                    JSON fact model + loader + type-check vs spec
+  verify.rs                   conformance: eval laws over facts; forbidden negatives
   backends/mod.rs             Backend trait, for_target(), TARGETS (owner)
   backends/{rust,typescript,python}.rs   codegen per target
-  main.rs                     CLI: check / gen / --version
+  main.rs                     CLI: check / gen / verify / --version
 .hiker/temporal.tent          canonical worked-example spec
 examples/temporal*/           systems-under-test (rust / ts / python)
+examples/architecture.{tent,facts.json}   verify worked example (dependency direction)
+examples/extractors/          tiny fact extractors (deps-to-facts.mjs, grep-to-facts.sh)
 skills/hiker/                 agent skill (SKILL.md + reference/)
 scripts/release-version.sh    channel + version resolver
 install                       channel-aware installer (repo slug: jalbarrang/hiker)

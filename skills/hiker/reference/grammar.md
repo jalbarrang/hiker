@@ -7,8 +7,9 @@ before writing or editing any spec. Per-command flows live next to this file
 ## CLI
 
 ```sh
-hiker check <file.tent>
-hiker gen   <file.tent> [--target rust|ts|python] [-o <out>] [--module <name>]
+hiker check  <file.tent>
+hiker gen    <file.tent> [--target rust|ts|python] [-o <out>] [--module <name>]
+hiker verify <file.tent> --facts <facts.json>
 ```
 
 - `--target` defaults to `rust`. Known targets: `rust`, `ts`, `python`.
@@ -17,6 +18,8 @@ hiker gen   <file.tent> [--target rust|ts|python] [-o <out>] [--module <name>]
 - With no `-o`, output goes to `.hiker-cache/<target>/<default-name>`
   (`generated.rs` / `generated.test.ts` / `test_generated.py`).
 - `gen` refuses to emit from intent that does not `check`.
+- `verify` evaluates the spec's laws against extracted facts (structural
+  conformance). See `verify.md` for the fact format and population modes.
 
 ## Grammar (v0)
 
@@ -25,7 +28,7 @@ spec      := item*
 item      := sort | relation | law
 sort      := "sort" Ident ( "{" field ("," field)* "}" )?
 field     := Ident ":" Ident                 // type: "Int" or a sort name
-relation  := "relation" Ident "(" param ("," param)* ")"
+relation  := "forbidden"? "relation" Ident "(" param ("," param)* ")"
 param     := Ident ":" Ident                 // name : sort
 law       := "law" Ident "(" Ident ("," Ident)* ")" "{" clause* "}"
 clause    := pred ( "=>" pred )?             // optional implication
@@ -37,6 +40,15 @@ op        := "==" | "<=" | "<" | ">=" | ">"
 - Comments: `//` to end of line.
 - A law body's clauses are implicitly AND-ed.
 - `a => b` (implication) lowers to `!a || b` (`not a or b` in Python).
+- A **`forbidden` relation** states a structural negative: it carries **no law**
+  (a law on it is a check error), and `verify` treats *any* matching fact as a
+  violation. Unary relations (predicates) like `is_adapter(m: Module)` already
+  parse — a relation may take 0..n params. Example:
+
+  ```
+  sort File
+  forbidden relation fs_import_under_routers(f: File)
+  ```
 
 ## Type rules ("intent compiles")
 
@@ -47,7 +59,8 @@ The checker rejects:
 3. a law referencing an unknown relation, or with the wrong number of arguments;
 4. `x.field` where `x` isn't a law argument or the field doesn't exist on its sort;
 5. an ordering comparison (`<= < >= >`) on non-`Int` operands;
-6. `==` between mismatched sorts.
+6. `==` between mismatched sorts;
+7. a law attached to a `forbidden` relation (it allows no facts, so a law is meaningless).
 
 Rule 4 is the anti-collapse guard: because relation parameters are typed, a law
 argument has a known sort, and you cannot borrow a field it doesn't have.

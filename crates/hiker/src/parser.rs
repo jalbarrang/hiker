@@ -9,7 +9,7 @@
 //!   item      := sort | relation | law
 //!   sort      := "sort" Ident ( "{" field ("," field)* "}" )?
 //!   field     := Ident ":" Ident                 // type: "Int" or a sort name
-//!   relation  := "relation" Ident "(" param ("," param)* ")"
+//!   relation  := "forbidden"? "relation" Ident "(" param ("," param)* ")"
 //!   param     := Ident ":" Ident
 //!   law       := "law" Ident "(" Ident ("," Ident)* ")" "{" clause* "}"
 //!   clause    := pred ( "=>" pred )?
@@ -101,11 +101,15 @@ impl Parser {
         while let Some(tok) = self.peek() {
             match tok {
                 Tok::Sort => spec.sorts.push(self.parse_sort()?),
-                Tok::Relation => spec.relations.push(self.parse_relation()?),
+                Tok::Relation => spec.relations.push(self.parse_relation(false)?),
+                Tok::Forbidden => {
+                    self.bump(); // consume `forbidden`; `relation` must follow
+                    spec.relations.push(self.parse_relation(true)?);
+                }
                 Tok::Law => spec.laws.push(self.parse_law()?),
                 other => {
                     return Err(format!(
-                        "line {}: expected `sort`, `relation`, or `law`, found {:?}",
+                        "line {}: expected `sort`, `relation`, `forbidden`, or `law`, found {:?}",
                         self.line(),
                         other
                     ))
@@ -147,7 +151,7 @@ impl Parser {
         Ok(Sort { name, fields, line })
     }
 
-    fn parse_relation(&mut self) -> Result<Relation, String> {
+    fn parse_relation(&mut self, forbidden: bool) -> Result<Relation, String> {
         let line = self.line();
         self.expect(Tok::Relation)?;
         let name = self.expect_ident()?;
@@ -168,7 +172,12 @@ impl Parser {
             }
         }
         self.expect(Tok::RParen)?;
-        Ok(Relation { name, params, line })
+        Ok(Relation {
+            name,
+            params,
+            forbidden,
+            line,
+        })
     }
 
     fn parse_law(&mut self) -> Result<Law, String> {
@@ -341,6 +350,15 @@ law det(a, b) {
                 field: "tag".into()
             }
         );
+    }
+
+    #[test]
+    fn parses_forbidden_relation() {
+        let spec = parse("sort File\nforbidden relation fs(f: File)").unwrap();
+        assert!(spec.relations[0].forbidden);
+        // A plain relation is not forbidden.
+        let plain = parse("sort P\nrelation r(a: P)").unwrap();
+        assert!(!plain.relations[0].forbidden);
     }
 
     #[test]

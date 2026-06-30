@@ -103,6 +103,15 @@ fn check_law(
             return;
         }
     };
+    // A `forbidden` relation means "no fact may match"; it has no behavior to
+    // constrain, so attaching a law to it is meaningless — reject it.
+    if relation.forbidden {
+        errors.push(format!(
+            "line {}: law on `forbidden` relation `{}` — forbidden relations allow no facts, so a law is meaningless",
+            law.line, law.relation
+        ));
+        return;
+    }
     if law.args.len() != relation.params.len() {
         errors.push(format!(
             "line {}: law `{}` has {} argument(s) but the relation takes {}",
@@ -240,6 +249,11 @@ fn type_of(
 pub fn warnings(spec: &Spec) -> Vec<String> {
     let mut out = Vec::new();
     for r in &spec.relations {
+        // A `forbidden` relation is *defined* to have no law — its enforcement is
+        // "zero matching facts", checked by verify — so don't warn about it.
+        if r.forbidden {
+            continue;
+        }
         if !spec.laws.iter().any(|law| law.relation == r.name) {
             out.push(format!(
                 "warning: relation `{}` has no law \u{2014} declared intent is not enforced",
@@ -333,6 +347,25 @@ law r(a) { }";
             errs.iter().any(|e| e.contains("empty body")),
             "got: {errs:?}"
         );
+    }
+
+    #[test]
+    fn rejects_law_on_forbidden_relation() {
+        let src = "\
+sort File
+forbidden relation fs(f: File)
+law fs(f) { }";
+        let errs = check_src(src).unwrap_err();
+        assert!(
+            errs.iter().any(|e| e.contains("forbidden")),
+            "got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn no_unlawed_warning_for_forbidden_relation() {
+        let spec = parse("sort File\nforbidden relation fs(f: File)").unwrap();
+        assert!(warnings(&spec).is_empty(), "got: {:?}", warnings(&spec));
     }
 
     #[test]

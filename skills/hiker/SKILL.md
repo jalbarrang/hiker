@@ -9,17 +9,19 @@ description: >-
   distinction two parts must agree on, a deterministic rule), or when an agent
   might quietly collapse a domain distinction to make a test pass. Sub-commands:
   `create` (set up intent for an initiative), `gen` (wire property tests),
-  `check` (compile the intent). Not for general feature or UI work.
-version: 1.1.0
+  `check` (compile the intent), `verify` (enforce laws over extracted codebase
+  facts). Not for general feature or UI work.
+version: 1.2.0
 ---
 
 # hiker
 
 A small DSL that keeps **architectural intent** in a *compiled* artifact so code
 can't quietly drift from it. Intent lives in `.hiker/*.tent`; the `hiker`
-CLI checks the intent is coherent and generates property tests from it. Two
-safety nets: **intent compiles** (incoherent specs are type errors) and **intent
-is enforced** (generated tests fail when code contradicts a law).
+CLI checks the intent is coherent and generates property tests from it. Three
+safety nets: **intent compiles** (incoherent specs are type errors), **intent
+is enforced** (generated tests fail when code contradicts a law), and **intent
+conforms** (`verify` evaluates the same laws over extracted codebase facts).
 
 ## Setup
 
@@ -30,7 +32,7 @@ Do these before proceeding:
    Read any `CONTEXT.md`, then `hiker check` each `<slug>.tent` to confirm the
    intent still compiles. If `hiker` isn't on PATH:
    `cargo install --path <hiker-repo>/crates/hiker`.
-2. **If invoked with a sub-command** (`create`, `gen`), you MUST read
+2. **If invoked with a sub-command** (`create`, `gen`, `verify`), you MUST read
    `reference/<command>.md` next — it defines the flow. Don't improvise it.
 3. **Before writing or editing any `.tent`**, read `reference/grammar.md`.
 
@@ -40,6 +42,9 @@ Do these before proceeding:
   `.tent` and wire a check script. → `reference/create.md`
 - **`gen`** — emit property tests from a spec and wire them into the project's
   test runner (rust/ts/python). → `reference/gen.md`
+- **`verify`** — enforce a spec's laws over facts extracted from a real codebase
+  (structural conformance: dependency direction, forbidden imports). →
+  `reference/verify.md`
 - **`check`** — `hiker check .hiker/tents/<slug>/<slug>.tent`. Prints
   `OK: N sorts, N relations, N laws` (exit 0) or line-numbered errors. Run it
   after every `.tent` edit. (inline; no reference needed)

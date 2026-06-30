@@ -16,5 +16,8 @@
 pub mod ast;
 pub mod backends;
 pub mod checker;
+pub mod eval;
+pub mod facts;
 pub mod lexer;
 pub mod parser;
+pub mod verify;

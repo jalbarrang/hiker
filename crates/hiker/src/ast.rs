@@ -38,10 +38,15 @@ pub enum Ty {
 }
 
 /// `relation point_in_interval(p: TemporalPoint, i: TemporalInterval)`.
+///
+/// A `forbidden` relation flips the meaning: it states a structural negative
+/// ("this must never happen"), so any extracted fact for it is a violation and
+/// it may carry no law. See `verify.rs`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Relation {
     pub name: String,
     pub params: Vec<Param>,
+    pub forbidden: bool,
     pub line: usize,
 }
 

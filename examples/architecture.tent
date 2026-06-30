@@ -1,0 +1,16 @@
+// Worked example for `hiker verify`: dependency-direction conformance.
+//
+// A module may only depend on modules at the same layer or lower (inward):
+// apps (layer 2) → packages (layer 1) → core (layer 0). An edge that points
+// outward (e.g. core depending on an app) is a structural violation.
+//
+// `verify` evaluates this law against extracted facts (see architecture.facts.json),
+// not random inputs — it reads the real import graph emitted by an extractor.
+
+sort Module { layer: Int }
+
+relation depends_on(importer: Module, imported: Module)
+
+law depends_on(importer, imported) {
+  imported.layer <= importer.layer
+}

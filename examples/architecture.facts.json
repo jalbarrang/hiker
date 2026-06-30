@@ -1,0 +1,17 @@
+{
+  "instances": {
+    "Module": [
+      { "id": "core",    "fields": { "layer": 0 } },
+      { "id": "config",  "fields": { "layer": 0 } },
+      { "id": "cms-api", "fields": { "layer": 1 } },
+      { "id": "cli",     "fields": { "layer": 2 } }
+    ]
+  },
+  "tuples": {
+    "depends_on": [
+      ["cli", "cms-api"],
+      ["cms-api", "core"],
+      ["core", "config"]
+    ]
+  }
+}
