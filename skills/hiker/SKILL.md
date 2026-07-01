@@ -11,7 +11,7 @@ description: >-
   `create` (set up intent for an initiative), `gen` (wire property tests),
   `check` (compile the intent), `verify` (enforce laws over extracted codebase
   facts). Not for general feature or UI work.
-version: 1.2.0
+version: 1.2.1
 ---
 
 # hiker
@@ -54,6 +54,9 @@ Do these before proceeding:
 - **sort** — a kind of entity. `sort Tag`, `sort Point { media: Tag, t: Int }`.
   Field types are `Int` or another sort; a no-field sort is an identity.
 - **relation** — a named, *typed* relationship. `relation maps_to(a: X, b: Y)`.
+  A **`forbidden relation`** states a structural negative (no fact may match,
+  e.g. a banned import) and carries no law — `verify` flags any matching fact.
+  → `reference/grammar.md`, `reference/verify.md`.
 - **well-formedness** — the checker enforces relation parameter types, so a law
   can't read a field a sort doesn't have. Violations = won't compile.
 - **law** — the predicate(s) a relation must satisfy. Comparisons
