@@ -3,6 +3,12 @@ name = "hiker"
 version = "0.1.0"
 edition = "2021"
 description = "A tiny DSL for stating architectural intent that compiles, with a Rust proptest bridge."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jalbarrang/hiker"
+homepage = "https://github.com/jalbarrang/hiker"
+readme = "../../README.md"
+keywords = ["dsl", "architecture", "property-testing", "proptest", "invariants"]
+categories = ["development-tools", "development-tools::testing"]
 
 [[bin]]
 name = "hiker"
