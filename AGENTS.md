@@ -67,7 +67,10 @@ crate.
   file owns the target list.
 - **Release channel = git branch.** `stable` → semver, `beta` → prerelease. The
   version is computed by `scripts/release-version.sh` and **stamped into
-  `crates/hiker/Cargo.toml` by CI at build time** — do not hand-bump it.
+  `crates/hiker/Cargo.toml` by CI at build time** — do not hand-bump it. Every
+  release publishes a GitHub Release with cross-compiled binaries; **stable**
+  releases additionally publish the crate to crates.io (`publish-crate` job,
+  gated on the GitHub Release; needs the `CARGO_REGISTRY_TOKEN` repo secret).
 - **Renames keep `.tent`.** The extension is independent of the binary name; the
   pun (you *pitch a tent*) is deliberate. Don't rename it.
 
