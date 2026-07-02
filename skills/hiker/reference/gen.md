@@ -48,7 +48,7 @@ does it as a pre-test step). A typical `package.json`:
 ```json
 {
   "scripts": {
-    "intent": "for f in .hiker/tents/*/*.tent; do hiker check \"$f\" || exit 1; done",
+    "intent": "hiker check .hiker",
     "pretest": "hiker gen .hiker/tents/<slug>/<slug>.tent --target ts --module <import>"
   }
 }

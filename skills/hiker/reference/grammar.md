@@ -7,11 +7,14 @@ before writing or editing any spec. Per-command flows live next to this file
 ## CLI
 
 ```sh
-hiker check  <file.tent>
+hiker check  [<path>...]
 hiker gen    <file.tent> [--target rust|ts|python] [-o <out>] [--module <name>]
 hiker verify <file.tent> --facts <facts.json>
 ```
 
+- `check` paths may be `.tent` files or directories (searched recursively for
+  `.tent`). With no paths it reads `.hikerconf` from the current directory —
+  JSON: `{ "files": [".hiker/**/*.tent"] }` (glob patterns).
 - `--target` defaults to `rust`. Known targets: `rust`, `ts`, `python`.
 - `--module` is the system-under-test import the tests call into: a Rust crate
   name, a TS import path, or a Python module name (default `temporal`).

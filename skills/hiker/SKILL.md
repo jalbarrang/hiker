@@ -45,9 +45,10 @@ Do these before proceeding:
 - **`verify`** — enforce a spec's laws over facts extracted from a real codebase
   (structural conformance: dependency direction, forbidden imports). →
   `reference/verify.md`
-- **`check`** — `hiker check .hiker/tents/<slug>/<slug>.tent`. Prints
-  `OK: N sorts, N relations, N laws` (exit 0) or line-numbered errors. Run it
-  after every `.tent` edit. (inline; no reference needed)
+- **`check`** — `hiker check .hiker` (dirs recurse for `.tent`; single files
+  work too; with no paths it reads `.hikerconf` globs). Prints
+  `OK: N sorts, N relations, N laws` per file (exit 0) or line-numbered errors.
+  Run it after every `.tent` edit. (inline; no reference needed)
 
 ## The model (4 concepts)
 

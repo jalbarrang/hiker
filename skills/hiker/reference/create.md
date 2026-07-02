@@ -45,8 +45,10 @@ Each intent gets its own folder so a repo can hold several:
    prints `OK: ...`. Errors carry line numbers. Fix the spec, not the checker.
 
 6. **Wire a script** so the team/agents run it (check every tent):
-   - npm/pnpm: `"intent": "for f in .hiker/tents/*/*.tent; do hiker check \"$f\" || exit 1; done"`.
-   - Make/justfile: an `intent` target with the same loop.
+   - npm/pnpm: `"intent": "hiker check .hiker"` (directories recurse for `.tent`).
+   - Or drop a `.hikerconf` at the repo root — `{ "files": [".hiker/**/*.tent"] }` —
+     and the script is just `hiker check`.
+   - Make/justfile: an `intent` target with the same command.
    - Gitignore generated output: add `.hiker-cache/`.
 
 7. **Optional — generate the bridge.** If a concrete function already implements

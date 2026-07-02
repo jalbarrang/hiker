@@ -85,12 +85,17 @@ Or build from source: `cargo build --release -p hiker` → `target/release/hiker
 
 ```sh
 hiker check  .hiker/temporal.tent                   # does intent compile?
+hiker check  .hiker                                 # dirs recurse for .tent files
+hiker check                                         # no args: reads .hikerconf globs
 hiker gen    .hiker/temporal.tent --target rust     # emit the test bridge
 hiker gen    .hiker/temporal.tent --target ts --module ../../src/temporal
 hiker verify examples/architecture.tent --facts examples/architecture.facts.json
 hiker --version
 ```
 
+- `check` accepts files and/or directories (searched recursively for `.tent`).
+  With no paths it reads `.hikerconf` from the current directory:
+  `{ "files": [".hiker/**/*.tent"] }`.
 - `--target` ∈ `rust | ts | python` (default `rust`).
 - `--module` sets the system-under-test import (crate / import path / module).
 - `gen` refuses to emit from intent that does not `check`.

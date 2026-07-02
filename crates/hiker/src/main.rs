@@ -1,8 +1,11 @@
 //! hiker CLI — wires the four compiler stages into two commands.
 //!
-//!   hiker check <file.tent>
-//!       Lex + parse + check. Prints a summary and exits 0 if intent compiles,
-//!       or prints every error and exits 1.
+//!   hiker check [<path>...]
+//!       Lex + parse + check. Each path may be a `.tent` file or a directory,
+//!       which is searched recursively for `.tent` files. With no paths, reads
+//!       `.hikerconf` (JSON: `{ "files": ["<glob>", ...] }`) from the current
+//!       directory. Prints a summary per file and exits 0 if every spec
+//!       compiles, or prints the errors and exits 1.
 //!
 //!   hiker gen <file.tent> [--target rust|ts|python] [-o <out>] [--module <name>]
 //!       Checks first (refuses to generate from incoherent intent), then writes
@@ -37,7 +40,9 @@ fn main() -> ExitCode {
         }
         _ => {
             eprintln!("usage:");
-            eprintln!("  hiker check <file.tent>");
+            eprintln!(
+                "  hiker check <path>...           (files or directories searched for .tent)"
+            );
             eprintln!(
                 "  hiker gen   <file.tent> [--target {}] [-o <out>] [--module <name>]",
                 backends::TARGETS.join("|")
@@ -79,23 +84,127 @@ fn load_checked(path: &str) -> Result<hiker::ast::Spec, ExitCode> {
     Ok(spec)
 }
 
-fn cmd_check(args: &[String]) -> ExitCode {
-    let Some(path) = args.first() else {
-        eprintln!("usage: hiker check <file.tent>");
-        return ExitCode::FAILURE;
-    };
-    match load_checked(path) {
-        Ok(spec) => {
-            println!(
-                "OK: {} sorts, {} relations, {} laws",
-                spec.sorts.len(),
-                spec.relations.len(),
-                spec.laws.len()
-            );
-            ExitCode::SUCCESS
+/// The `.hikerconf` shape: a JSON object with a `files` list of glob patterns
+/// (e.g. `".hiker/**/*.tent"`). Patterns may also match directories, which are
+/// searched recursively for `.tent` files.
+#[derive(serde::Deserialize)]
+struct HikerConf {
+    files: Vec<String>,
+}
+
+/// Expand `.hikerconf` glob patterns into concrete paths. Returns an error
+/// string suitable for printing.
+fn conf_paths(conf_src: &str) -> Result<Vec<String>, String> {
+    let conf: HikerConf =
+        serde_json::from_str(conf_src).map_err(|e| format!("invalid .hikerconf: {e}"))?;
+    let mut paths = Vec::new();
+    for pattern in &conf.files {
+        let entries = glob::glob(pattern).map_err(|e| format!("invalid glob `{pattern}`: {e}"))?;
+        for entry in entries {
+            let p = entry.map_err(|e| format!("cannot read `{pattern}` match: {e}"))?;
+            paths.push(p.to_string_lossy().into_owned());
         }
-        Err(code) => code,
     }
+    if paths.is_empty() {
+        return Err("no files matched the globs in .hikerconf".to_string());
+    }
+    Ok(paths)
+}
+
+fn cmd_check(args: &[String]) -> ExitCode {
+    // With no paths, fall back to `.hikerconf` in the current directory.
+    let paths: Vec<String> = if args.is_empty() {
+        match std::fs::read_to_string(".hikerconf") {
+            Ok(src) => match conf_paths(&src) {
+                Ok(paths) => paths,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return ExitCode::FAILURE;
+                }
+            },
+            Err(_) => {
+                eprintln!(
+                    "usage: hiker check <path>...   (each path is a .tent file or a directory)"
+                );
+                eprintln!(
+                    "       with no paths, reads .hikerconf: {{ \"files\": [\"<glob>\", ...] }}"
+                );
+                return ExitCode::FAILURE;
+            }
+        }
+    } else {
+        args.to_vec()
+    };
+
+    let mut files: Vec<std::path::PathBuf> = Vec::new();
+    for arg in &paths {
+        let p = std::path::Path::new(arg);
+        if p.is_dir() {
+            let before = files.len();
+            if let Err(e) = collect_tents(p, &mut files) {
+                eprintln!("error: cannot read `{arg}`: {e}");
+                return ExitCode::FAILURE;
+            }
+            if files.len() == before {
+                eprintln!("error: no .tent files found under `{arg}`");
+                return ExitCode::FAILURE;
+            }
+        } else {
+            files.push(p.to_path_buf());
+        }
+    }
+    files.sort();
+    files.dedup();
+
+    let many = files.len() > 1;
+    let mut failed = 0usize;
+    for file in &files {
+        let path = file.to_string_lossy();
+        match load_checked(&path) {
+            Ok(spec) => {
+                let prefix = if many {
+                    format!("{path}: ")
+                } else {
+                    String::new()
+                };
+                println!(
+                    "{prefix}OK: {} sorts, {} relations, {} laws",
+                    spec.sorts.len(),
+                    spec.relations.len(),
+                    spec.laws.len()
+                );
+            }
+            Err(_) => {
+                if many {
+                    eprintln!("{path}: FAILED");
+                }
+                failed += 1;
+            }
+        }
+    }
+    if many {
+        println!("checked {} files, {failed} failed", files.len());
+    }
+    if failed == 0 {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
+}
+
+/// Recursively collect every `.tent` file under `dir` (depth-first, sorted by
+/// the caller). Hidden directories are descended into — `.hiker/` is the
+/// conventional home for specs.
+fn collect_tents(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) -> std::io::Result<()> {
+    for entry in std::fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.is_dir() {
+            collect_tents(&path, out)?;
+        } else if path.extension().is_some_and(|e| e == "tent") {
+            out.push(path);
+        }
+    }
+    Ok(())
 }
 
 fn cmd_gen(args: &[String]) -> ExitCode {
@@ -249,7 +358,7 @@ fn run_verify(spec_path: &str, facts_path: &str) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use super::run_verify;
+    use super::{collect_tents, conf_paths, run_verify};
 
     fn write_temp(tag: &str, contents: &str) -> String {
         let mut p = std::env::temp_dir();
@@ -268,6 +377,50 @@ law depends_on(a, b) { b.layer <= a.layer }
         { "id": "cli",  "fields": { "layer": 2 } },
         { "id": "core", "fields": { "layer": 0 } }
     ] }"#;
+
+    #[test]
+    fn conf_paths_expands_globs() {
+        let mut root = std::env::temp_dir();
+        root.push(format!("hiker_conf_{}", std::process::id()));
+        let nested = root.join("tents").join("deep");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::write(root.join("a.tent"), "").unwrap();
+        std::fs::write(nested.join("b.tent"), "").unwrap();
+
+        let conf = format!(r#"{{ "files": ["{}/**/*.tent"] }}"#, root.display());
+        let mut paths = conf_paths(&conf).unwrap();
+        paths.sort();
+        assert_eq!(paths.len(), 2);
+        assert!(paths[0].ends_with("a.tent"));
+        assert!(paths[1].ends_with("b.tent"));
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn conf_paths_rejects_bad_json_and_empty_matches() {
+        assert!(conf_paths("not json")
+            .unwrap_err()
+            .contains("invalid .hikerconf"));
+        let err = conf_paths(r#"{ "files": ["/nonexistent_hiker_xyz/**/*.tent"] }"#).unwrap_err();
+        assert!(err.contains("no files matched"));
+    }
+
+    #[test]
+    fn collect_tents_recurses_and_filters() {
+        let mut root = std::env::temp_dir();
+        root.push(format!("hiker_collect_{}", std::process::id()));
+        let nested = root.join("tents").join("deep");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::write(root.join("a.tent"), "").unwrap();
+        std::fs::write(nested.join("b.tent"), "").unwrap();
+        std::fs::write(nested.join("ignored.txt"), "").unwrap();
+
+        let mut found = Vec::new();
+        collect_tents(&root, &mut found).unwrap();
+        found.sort();
+        assert_eq!(found, vec![root.join("a.tent"), nested.join("b.tent")]);
+        std::fs::remove_dir_all(&root).unwrap();
+    }
 
     #[test]
     fn verify_succeeds_on_inward_facts() {
