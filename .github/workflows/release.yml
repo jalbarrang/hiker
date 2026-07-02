@@ -33,7 +33,7 @@ jobs:
       channel: ${{ steps.v.outputs.channel }}
       prerelease: ${{ steps.v.outputs.prerelease }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0   # need all tags to compute the next version
       - id: v
@@ -57,7 +57,7 @@ jobs:
           - { os: windows-latest, target: x86_64-pc-windows-msvc }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Stamp the resolved version into the crate so `hiker --version` reports it.
       - name: Stamp version
@@ -97,7 +97,7 @@ jobs:
           Compress-Archive -Path "target/${{ matrix.target }}/release/hiker.exe" -DestinationPath "$dist.zip" -Force
           (Get-FileHash "$dist.zip" -Algorithm SHA256).Hash.ToLower() + "  $dist.zip" | Out-File "$dist.zip.sha256" -Encoding ascii
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: hiker-${{ matrix.target }}
           path: |
@@ -109,12 +109,12 @@ jobs:
     needs: [version, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
       - name: Publish
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ needs.version.outputs.version }}
           name: v${{ needs.version.outputs.version }}
@@ -132,7 +132,7 @@ jobs:
     if: needs.version.outputs.prerelease == 'false'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Stamp the resolved version into the crate before publishing (same as
       # the build job). This makes the tree dirty, hence --allow-dirty below.
